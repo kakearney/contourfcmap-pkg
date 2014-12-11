@@ -45,7 +45,7 @@ colormap(h.ax(1), jet);
 title(h.ax(1), 'contourf');
 ```
 
-![contourfcmap1](html/contourfcmap_readme_01.png)
+![contourfcmap1](contourfcmap_readme_01.png)
 
  Without labeling the contour lines, it's difficult to tell which values
  in the colorbar correspond to the color intervals in the contuorf plot.  Extreme values are misleading too... Is that entire dark red region exactly equal to 5, as implied by the colorbar?  What does white mean? Using contourfcmap, we can set the colors explictly, so it's much easier
@@ -57,7 +57,7 @@ hc = contourfcmap(x,y,z,clev,jet(12), ...
      [.8 .8 .8], [.2 .2 .2], 'eastoutside');
 title(h.ax(2), 'contourfcmap');           
 ```
-![contourfcmap2](html/contourfcmap_readme_02.png)
+![contourfcmap2](contourfcmap_readme_02.png)
 
 
  If you prefer, you can set the colorbar to show the contour intervals
@@ -70,4 +70,4 @@ set(h.ax(2), 'position', [0.525 0.25 0.425 0.5]);
 hc = contourfcmap(x,y,z,clev,jet(12), ...
      [.8 .8 .8], [.2 .2 .2], 'eastoutside', true);
 ```
-![contourfcmap3](html/contourfcmap_readme_03.png)
+![contourfcmap3](contourfcmap_readme_03.png)
