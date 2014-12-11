@@ -156,7 +156,7 @@ else
     showcb = false;
 end
 
-if nargin < 9 || isempty(cbrloc)
+if nargin < 9 || isempty(cbarloc)
     evencb = false;
 end
 
