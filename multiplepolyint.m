@@ -1,6 +1,8 @@
 function [xnew, ynew, indices] = multiplepolyint(x, y)
 %MULTIPLEPOLYINT Multiple polygon intersection
 %
+% [xnew, ynew, indices] = multiplepolyint(x, y)
+%
 % Determines the regions where polygons overlap, distinguishing between
 % each set of overlaps.
 %
