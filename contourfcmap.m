@@ -5,6 +5,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 % h = contourfcmap(x,y,z,clev,cmap)
 % h = contourfcmap(x,y,z,clev,cmap,lo)
 % h = contourfcmap(x,y,z,clev,cmap,lo,hi)
+% h = contourfcmap(x,y,z,clev,cmap, param1, val1, ...)
 % 
 % This function creates a shaded contour map, similar to that created by
 % the contourf function.  However, the relationship between a contourf plot
@@ -48,7 +49,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 %               patches; it is for labeling only and is not linked to the
 %               "peer axis" in any way. Default is no colorbar.
 %
-%   evencb:     logiscal scalar.  If true, intervals on the colorbar will
+%   evencb:     logical scalar.  If true, intervals on the colorbar will
 %               be evenly spaced, regardless of value.  If false, ticks
 %               will correspond to clev values. If not included or empty,
 %               default is false.
@@ -72,6 +73,15 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 %                               the highest contour level, which isn't
 %                               always the case with contourf-generated
 %                               contour objects.
+%
+%   flag:       logical flag indicating whether to use the fast version of
+%               multiplepolyint.m (only applicable if method is
+%               'calccontour').  In plots with a large number of contour
+%               lines, this significantly speeds up the calculation.
+%               However, it works by directly calling a private mex
+%               function in the Mapping Toolbox, so it might be a bit less
+%               stable than the slower version, and may break in future
+%               releases. Default is true.
 %
 % Output variables:
 %
@@ -100,7 +110,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 %              [.8 .8 .8], [.2 .2 .2], 'eastoutside')
 % 
 
-% Copyright 2010-2014 Kelly Kearney
+% Copyright 2010-2015 Kelly Kearney
 
 %------------------------
 % Parse input
@@ -114,7 +124,7 @@ Opt.hi = [1 1 1];
 Opt.cbarloc = [];
 Opt.evencb = false;
 Opt.method = 'recolor';
-Opt.flag = false;
+Opt.flag = true;
 
 isc = cellfun(@ischar, varargin);
 if ~mod(length(varargin),2) & all(isc(1:2:end))
