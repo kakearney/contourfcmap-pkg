@@ -114,6 +114,7 @@ Opt.hi = [1 1 1];
 Opt.cbarloc = [];
 Opt.evencb = false;
 Opt.method = 'recolor';
+Opt.flag = false;
 
 isc = cellfun(@ischar, varargin);
 if ~mod(length(varargin),2) & all(isc(1:2:end))
@@ -304,8 +305,16 @@ switch Opt.method
             if ~any(isnan(z(:)))
                 isbelow = isnan(cdata);
             else
-                warning('NaN in data; haven''t figured NaN vs lo yet');
-                isbelow = isnan(cdata);
+                idxtmp = find(isnan(cdata));
+                xy = get(hpatch(idxtmp), {'xdata','ydata'});
+                xy = cellfun(@(x) x(1), xy);
+                ztmp = interp2(x,y,z,xy(:,1),xy(:,2));
+                
+                isn = false(size(cdata));
+                isn(idxtmp(isnan(ztmp))) = true;
+                
+                isbelow = isnan(cdata) & ~isn;
+                
             end
 
             level = get(h, 'LevelList');
@@ -319,9 +328,11 @@ switch Opt.method
 
             for ip = 1:length(hpatch)
                 if isbelow(ip)
-                        set(hpatch(ip), 'facecolor', Opt.lo);
+                    set(hpatch(ip), 'facecolor', Opt.lo);
                 elseif isabove(ip)
-                        set(hpatch(ip), 'facecolor', Opt.hi);
+                    set(hpatch(ip), 'facecolor', Opt.hi);
+                elseif isn(ip)
+                    set(hpatch(ip), 'facecolor', [1 1 1]);
                 elseif isweirdextra(ip)
                     dist = cdata(ip) - clev;
                     dist(dist<0) = Inf;
@@ -342,25 +353,34 @@ switch Opt.method
             drawnow;
             Fp = h.FacePrims;
             np = length(Fp);
-            xyz = zeros(3, np);
-            for ii = 1:np
-                
-                % Can't seem to find the property that links each
-                % TrangleStrip to a particular contour level, and hence
-                % color.  So I'm just going to find in as I do in the
-                % calccontour method, by interpolating the value at a point
-                % inside the first triangle.
-                
-                xyz(:,ii) = mean(Fp(ii).VertexData(:,Fp(ii).StripData(1:3)),2);
-
+            
+            % I can't seem to find the property that links each
+            % TriangleStrip to a particular contour level (and hence the
+            % appropriate color).  So I'm going to have to determine that
+            % by checking the value in one triangle per strip.  Sometimes
+            % scaled, though.
+            
+            vd = get(Fp, 'VertexData');
+            lims = [min(cat(2, vd{:}), [], 2) max(cat(2, vd{:}), [], 2)];
+            axlims = get(ax, {'xlim', 'ylim','zlim'});
+            axlims = cat(1, axlims{:});
+            
+            if ~isequal(lims(1:2,:), axlims(1:2,:))
+                s = diff(axlims,1,2);
+                o = axlims(:,1);
+                vd = cellfun(@(v) bsxfun(@plus, bsxfun(@times, double(v), s), o), vd, 'uni', 0); 
             end
-            val = interp2(x,y,z,xyz(1,:), xyz(2,:));
-            [n, idx] = histc(val, clev);
-            idx(val < clev(1)) = nlev;
-            idx(val > clev(end)) = nlev + 1;
             
-            cdata = [cmap; Opt.lo; Opt.hi] * 255;
+            sd = get(Fp, 'StripData');
+            xyz = cellfun(@(v,s) v(:,s(1:end-1)), vd, sd, 'uni', 0);
+            idx = zeros(np,1);
+            for ii = 1:np
+                tmp = interp2(x,y,z,xyz{ii}(1,:), xyz{ii}(2,:));
+                [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
+                [~,idx(ii)] = max(ntmp);
+            end
             
+            cdata = [Opt.lo; cmap; Opt.hi] * 255;
             newcol = cdata(idx,:);
             
             for ii = 1:np
@@ -387,8 +407,25 @@ switch Opt.method
         if isvector(y)
             y = reshape(y, [], 1);
         end
-
-        S = contourcs(x(1,:),y(:,1),z,clev);
+        
+        nflag = any(isnan(z(:)));
+        if nflag
+            
+            % Trying to extend the lines properly when they hit NaNs rather
+            % than walls is a pain. I think this interpolation hack should
+            % do it for me.
+            
+            isn = isnan(z);
+            [zi, A] = fillnan(z', {x(1,:), y(:,1)});
+            
+            S  = contourcs(x(1,:), y(:,1), zi', clev);
+            Sn = contourcs(x(1,:), y(:,1), double(isnan(z)), [0 0]);
+            
+            S = cat(1, S, Sn);
+            nnan = length(Sn);
+        else
+            S = contourcs(x(1,:),y(:,1),z,clev);
+        end
 
         % For the lines that hit the boundaries, figure out if corners need
         % to be included 
@@ -439,39 +476,62 @@ switch Opt.method
 
             end
         end
-
+        
+        % Eliminate the overlap with NaN-polygons (otherwise we end up with
+        % extra lines cutting through these regions)
+        
+        [xc,yc] = poly2cw({S.X}, {S.Y});
+        
+        [xn, yn] = polyjoin(xc(end-nnan-1:end), yc(end-nnan-1:end));
+        for ii = 1:(length(S)-nnan)
+            [xc{ii}, yc{ii}] = polybool('-', xc{ii}, yc{ii}, xn, yn);
+        end
+        
+        [xc, yc] = polyjoin(xc, yc);
+        [xc, yc] = poly2cw(xc, yc);
+        [xc, yc] = polysplit(xc, yc);
+        
         % Triangulate patches, eliminating overlap
 
-        [xc,yc] = poly2cw({S.X}, {S.Y});
+        xc = [xc; xcorner];
+        yc = [yc; ycorner];
+        isemp = cellfun(@isempty, xc);
+        xc = xc(~isemp);
+        yc = yc(~isemp);
 
-        xc = [xc xcorner];
-        yc = [yc ycorner];
-
-        [xnew, ynew] = multiplepolyint(xc,yc);
-
+        [xnew, ynew] = multiplepolyint(xc,yc,Opt.flag);
+        
         np = length(xnew);
 
         [f,v] = deal(cell(np,1));
-        [xsamp, ysamp] = deal(zeros(np,1));
-        for ip = 1:length(xnew)
+        for ip = 1:np
             [f{ip},v{ip}] = poly2fv(xnew{ip}, ynew{ip});
-
-            vx = v{ip}(:,1);
-            vy = v{ip}(:,2);
-            xsamp(ip) = mean(vx((f{ip}(1,:))));
-            ysamp(ip) = mean(vy((f{ip}(1,:))));
-
         end
-
+        isemp = cellfun('isempty', f);
+        f = f(~isemp);
+        v = v(~isemp);
+        np = length(f);
+        
         % There's probably a more elegant way to figure out which color
         % goes where, but this works for now 
-
-        val = interp2(x,y,z,xsamp,ysamp);
-        [~, lev] = histc(val, clev);
-
-        cmap2 = [cmap; Opt.lo; Opt.hi];
-        lev(val < clev(1)) = size(cmap2,1)-1;
-        lev(val > clev(end)) = size(cmap2,1);
+        
+        lev = zeros(np,1);
+        for ii = 1:np
+            vx = v{ii}(:,1);
+            vy = v{ii}(:,2);
+            fx = mean(vx(f{ii}),2);
+            fy = mean(vy(f{ii}),2);
+            
+            tmp = interp2(x,y,z,fx,fy);
+            [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
+            if ~any(ntmp)
+                lev(ii) = length(clev)+2;
+            else
+                [~,lev(ii)] = max(ntmp);
+            end
+        end
+            
+        cmap2 = [Opt.lo; cmap; Opt.hi; 1 1 1];
 
         % Plot contour lines and patches
 
@@ -486,10 +546,12 @@ switch Opt.method
             hout.l(il) = line(xnew{il}, ynew{il}, 'color', 'k');
         end    
         
+        % A few axes properties changes similar to those made by contourf
+        
+        axis(ax, 'tight');
+        set(ax, 'layer', 'top', 'box', 'on');
+        
 end
-
-
-
 
 if showcb && hascbcoord
     set(cbax, 'position', cbarcoord);
@@ -502,22 +564,6 @@ end
 if nargout > 0
     varargout{1} = hout;
 end
-
-% hndl.p = hp;
-% hndl.l = hl;
-% if showcb
-%     % Return focus to axis (needed if colorbar created), but keep colorbar
-%     % on top
-%     hndl.cbax = cbax;
-%     axes(ax);
-%     uistack(cbax, 'top');
-% end
-% 
-% if nargout > 0
-%     varargout{1} = hndl;
-% end
-
-
 
 function a = minmax(b)
 a = [min(b(:)) max(b(:))];
