@@ -59,8 +59,11 @@ if flag
     v2gpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsToGPC.m');
     vfgpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsFromGPC.m');
     gpcmexpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','gpcmex.mexmaci64');
-    if ~exist(v2gpcpath, 'file') || ~exist(gpcmexpath, 'file')
-        error('Please modify the paths in multiplepolyint.m (Lines 50-51) to point to your copies of vectorsToGPC.m and the mex function gpcmex');
+    if ~exist(vfgpcpath, 'file') || ~exist(gpcmexpath, 'file')
+        error('multiplepolyint:privatepath', ...
+            ['Please modify the paths in multiplepolyint.m (above this) to point to\n'
+             'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n'
+             'be found in the toolbox/map/map/private folder of the Mapping Toolbox']);
     end
     vectorsToGPC = function_handle(v2gpcpath);
     vectorsFromGPC = function_handle(vfgpcpath);
@@ -151,8 +154,87 @@ else % The riskier way, going straight to gpcmex
     
     % Convert all polygons to GPC-style structures
     
-    error('Fast way is still a work in progress');
+    p = cell(length(x),1);
+    for ii = 1:length(x)
+        [xtmp, ytmp] = polysplit(x{ii},y{ii});
+        p{ii} = struct('x', xtmp, 'y', ytmp, 'ishole', num2cell(~ispolycw(xtmp, ytmp)));
+    end
     
+    % Start with first polygon
+    
+    pnew = p(1);
+    indices = {1};
+    
+    isemp = @(p) isempty([p.x]);
+    
+    for ipoly = 2:length(x)
+        
+        p1 = p{ipoly};
+        for icomp = 1:length(pnew)
+            
+            p2 = pnew{icomp};
+            
+            % Intersecting
+            
+            pint{icomp} = gpcmex('int', p1, p2);
+            noint = isemp(pint{icomp});
+            
+            % Only in 2
+            
+            if noint
+                pxor{icomp} = p2;
+            else
+                pxor{icomp} = gpcmex('xor', p2, pint{icomp});
+            end
+
+            noxor = isemp(pxor{icomp});
+            
+            % Indices
+
+            if noint
+                indint{icomp} = [];
+            else
+                indint{icomp} = [indices{icomp} ipoly];
+            end
+
+            if noxor
+                indxor{icomp} = [];
+            else
+                indxor{icomp} = indices{icomp};
+            end
+           
+        end
+        
+        % Only in 1
+        
+        pallint = cat(1, pint{:});
+        if isemp(pallint)
+            pout = p1;
+        else
+            pout = gpcmex('xor', p1, pallint);
+        end
+        
+        if isemp(pout)
+            indout = [];
+        else
+            indout = ipoly;
+        end
+        
+        ptemp = [pint pxor {pout}];
+        indtemp = [indint indxor {indout}];
+        
+        isbad = cellfun(@(a,b) isempty(a) & isempty(b), ptemp, indtemp);
+        pnew = ptemp(~isbad);
+        indices = indtemp(~isbad);
+        
+    end
+    
+    % Convert back to cell arrays
+    
+    [xnew, ynew] = cellfun(vectorsFromGPC, pnew, 'uni', 0);
+    xnew = xnew(:);
+    ynew = ynew(:);
+  
 end
     
 
