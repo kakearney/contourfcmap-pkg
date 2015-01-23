@@ -2,6 +2,7 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, flag)
 %MULTIPLEPOLYINT Multiple polygon intersection
 %
 % [xnew, ynew, indices] = multiplepolyint(x, y)
+% [xnew, ynew, indices] = multiplepolyint(x, y, flag)
 %
 % Determines the regions where polygons overlap, distinguishing between
 % each set of overlaps.
@@ -14,9 +15,9 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, flag)
 %
 %   flag:       logical scalar, indicating whether to use fast method
 %               (true) or not (false).  Default is false.  The fast method
-%               basically strips all the error and formatting checks from
-%               polybool, making it much more fragile but also faster...
-%               use at your own risk.
+%               basically skips over polybool and uses gpcmex directly;
+%               because it accesses private functions in the Mapping
+%               Toolbox, it may be more fragile than the default method.
 %
 % Output variables:
 %
