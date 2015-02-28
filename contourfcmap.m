@@ -435,6 +435,7 @@ switch Opt.method
             nnan = length(Sn);
         else
             S = contourcs(x(1,:),y(:,1),z,clev);
+            nnan = 0;
         end
 
         % For the lines that hit the boundaries, figure out if corners need
