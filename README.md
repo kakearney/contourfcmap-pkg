@@ -92,6 +92,9 @@ hc = contourfcmap(x,y,z,clev,jet(12), ...
 Finally, here's an example to show the potential differences between the two contour-creation methods with respect to coloring lower-than-lowest-contour regions.  In 2013a, contour objects only shade a too-low region if it's a closed polygon.  In 2014b, the region is never shaded.  With the calccontour method, the result is consistent (and in my opinion, correct) in both versions.
 
 ```matlab
+v = ver('matlab');
+v = regexprep(v.Release, '[\(\)]', '');
+
 [x,y] = meshgrid(linspace(0,1,100));
 z = peaks(100);
 clev = [-5 -3 -2:.5:2 3 5];
