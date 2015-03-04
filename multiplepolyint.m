@@ -62,8 +62,8 @@ if flag
     gpcmexpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','gpcmex.mexmaci64');
     if ~exist(vfgpcpath, 'file') || ~exist(gpcmexpath, 'file')
         error('multiplepolyint:privatepath', ...
-            ['Please modify the paths in multiplepolyint.m (above this) to point to\n'
-             'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n'
+            ['Please modify the paths in multiplepolyint.m (above this) to point to\n', ...
+             'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n', ...
              'be found in the toolbox/map/map/private folder of the Mapping Toolbox']);
     end
     vectorsToGPC = function_handle(v2gpcpath);
