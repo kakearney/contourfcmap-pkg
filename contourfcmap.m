@@ -314,6 +314,7 @@ switch Opt.method
 
             if ~any(isnan(z(:)))
                 isbelow = isnan(cdata);
+                isn = false(size(cdata));
             else
                 idxtmp = find(isnan(cdata));
                 xy = get(hpatch(idxtmp), {'xdata','ydata'});
