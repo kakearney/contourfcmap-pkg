@@ -494,9 +494,11 @@ switch Opt.method
         
         [xc,yc] = poly2cw({S.X}, {S.Y});
         
-        [xn, yn] = polyjoin(xc(end-nnan-1:end), yc(end-nnan-1:end));
-        for ii = 1:(length(S)-nnan)
-            [xc{ii}, yc{ii}] = polybool('-', xc{ii}, yc{ii}, xn, yn);
+        if nflag
+            [xn, yn] = polyjoin(xc(end-nnan-1:end), yc(end-nnan-1:end));
+            for ii = 1:(length(S)-nnan)
+                [xc{ii}, yc{ii}] = polybool('-', xc{ii}, yc{ii}, xn, yn);
+            end
         end
         
         [xc, yc] = polyjoin(xc, yc);
@@ -567,6 +569,9 @@ end
 
 if showcb && hascbcoord
     set(cbax, 'position', cbarcoord);
+end
+if showcb
+    uistack(cbax, 'top');
 end
 
 %------------------------
