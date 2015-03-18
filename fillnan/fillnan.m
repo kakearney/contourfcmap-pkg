@@ -1,18 +1,25 @@
 function [v, A] = fillnan(v, coords, varargin)
 %FILLNAN Fill in missing values in an array with nearest neighbor
 %
+% [v, A] = fillnan(v)
 % [v, A] = fillnan(v, coords, p1, v1, ...)
 %
-% When upsampling geographic data, I often need to first perform a
-% nearest-neighbor interpolation to fill in land-masked data cells and
-% prevent replication of these NaNs into now-resolved regions.  This
-% function is much faster than inpainting via a scattered interpolant.
+% This function fills NaN (or otherwise masked) points in a gridded array
+% with the value from the nearest non-masked grid point.  It is much faster
+% than using a scattered interpolant for this, or inpainting functions like
+% inpaint_nans (which perform more complex fitting calculations).  The
+% output also allows for resuse of the nearest-neighbor calculation on
+% different datasets that share a coordinate system.
 %
 % Input variables:
 %
 %   v:      array of values, 2D or 3D array, nd-grid style
 %
-%   coords: 1 x 2 or 1 x 3 array of coordinates
+%   coords: 1 x 2 or 1 x 3 cell array of grid coordinates, corresponding to
+%           x, y, and z coordinates, respectively.  Cells should either be
+%           the same size as v, or vectors following ndgrid conventions.
+%           If empty or not included, coordinates will correspond to array
+%           indices. 
 %
 % Optional input variables (passed as parameter/value pairs):
 %
@@ -26,8 +33,9 @@ function [v, A] = fillnan(v, coords, varargin)
 %   perim:  true to fill only values along the edge of data/no-data
 %           boundaries.  This option is useful when preparing to upsample a
 %           dataset when you only need to prevent propagation of NaNs along
-%           the edges of a dataset, without wasting computation time on
-%           inland grid cells. [false] 
+%           the edges of a mask (for example, upsampling ocean data where
+%           land is masked), without wasting computation time on filling
+%           inland grid cells. [false]     
 %
 % Output variables:
 %
@@ -35,7 +43,8 @@ function [v, A] = fillnan(v, coords, varargin)
 %           now filled in. 
 %
 %   A:      1 x 1 structure with the following fields.  Can be used to
-%           repeat interpolation without recalculating nearest neighbors.
+%           repeat interpolation without recalculating nearest neighbors,
+%           e.g. v2(A.idxnn) = v2(A.idxfill).
 %
 %           idxfill:    indices to the missing-data cells that are
 %                       filled in 
@@ -44,7 +53,7 @@ function [v, A] = fillnan(v, coords, varargin)
 %                       fill in each of the cells in the above array,
 %                       respectively.
 
-% Copyright 2013 Kelly Kearney
+% Copyright 2013-2015 Kelly Kearney
 
 %------------------------
 % Parse input
@@ -56,11 +65,18 @@ Opt.perim = false;
 
 Opt = parsepv(Opt, varargin);
 
+if ndims(v) > 3
+    error('Only 2D and 3D arrays supported at this time');
+end
 [nx, ny, nz] = size(v);
 
 % Convert coordinates if necessary
 
-if cellfun(@isvector, coords)
+if nargin < 2 || isempty(coords)
+    coords = {1:nx, 1:ny, 1:nz};
+end
+
+if cellfun(@isvector, coords) % all implicit
     [coords{:}] = ndgrid(coords{:});
 end
 
