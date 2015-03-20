@@ -201,6 +201,63 @@ end
 
 ax = gca;
 
+%------------------------
+% X/Y pattern
+%------------------------
+
+% X and Y can either be vectors, or matrices, and the matrices can be
+% irregular
+
+isvec = isvector(x) && ...
+        isvector(y) && ...
+        (length(x)==size(z,2) && ...
+         length(y)==size(z,1)) || ...
+        (length(x)==size(z,1) && ...
+         length(y)==size(z,2));
+    
+ismgrid = isequal(size(x),size(y),size(z)) && ...
+          ~any(reshape(bsxfun(@minus, x, x(1,:)),[],1)) && ...
+          ~any(reshape(bsxfun(@minus, y, y(:,1)),[],1));
+isngrid = isequal(size(x),size(y),size(z)) && ...
+          ~any(reshape(bsxfun(@minus, x, x(:,1)),[],1)) && ...
+          ~any(reshape(bsxfun(@minus, y, y(1,:)),[],1));
+      
+isigrid = isequal(size(x),size(y),size(z)) && ...
+          ~ismgrid && ...
+          ~isngrid;
+      
+if ~(isvec || ismgrid || isngrid || isigrid)
+    htmp = contourf(x,y,z);
+    
+    % If this works, it means I've found an input format I hadn't
+    % considered in my code.  Might work, might not.  Email me if you hit
+    % this.
+    
+    warning('You''ve found an accepatable x/y/z format that I haven''t tested... may have unexpected results');
+    delete(htmp);
+end
+       
+% Convert all rectilinear input format to vector x and y, with z rows
+% corresponding to y and columns to x.  Irregular grids will stay as they
+% are.
+
+if isigrid
+    irrflag = true; % Flag for irregular grid
+else
+    irrflag = false;
+    if isvec
+        if size(z,2) ~= length(x)
+            z = z';
+        end
+    elseif ismgrid
+        x = x(1,:);
+        y = y(:,1);
+    elseif isngrid
+        x = x(:,1);
+        y = y(1,:);
+        z = z';
+    end
+end
 
 %------------------------
 % Create colorbar
@@ -319,7 +376,12 @@ switch Opt.method
                 idxtmp = find(isnan(cdata));
                 xy = get(hpatch(idxtmp), {'xdata','ydata'});
                 xy = cellfun(@(x) x(1), xy);
-                ztmp = interp2(x,y,z,xy(:,1),xy(:,2));
+                if irrflag
+                    F = scatteredInterpolant(x(:), y(:), z(:));
+                    ztmp = F(xy(:,1),xy(:,2));
+                else
+                    ztmp = interp2(x,y,z,xy(:,1),xy(:,2));
+                end
                 
                 isn = false(size(cdata));
                 isn(idxtmp(isnan(ztmp))) = true;
@@ -368,25 +430,47 @@ switch Opt.method
             % I can't seem to find the property that links each
             % TriangleStrip to a particular contour level (and hence the
             % appropriate color).  So I'm going to have to determine that
-            % by checking the value in one triangle per strip.  Sometimes
-            % scaled, though.
+            % by checking the value in one triangle per strip.
             
             vd = get(Fp, 'VertexData');
+            
+            % Vertex data is sometimes scaled.  I'm not quite sure what
+            % determines this.  My best bet so far is to just check to see
+            % if the vd data is in the axis limits.  If not, assume it's
+            % scaled.  (I used to also check that potentially-scaled values
+            % were between 0 and 1, but I've hit a few examples where
+            % scaled values exceed that by a few thousandths... still not
+            % very clear on what's going on here).
+            
             lims = [min(cat(2, vd{:}), [], 2) max(cat(2, vd{:}), [], 2)];
             axlims = get(ax, {'xlim', 'ylim','zlim'});
             axlims = cat(1, axlims{:});
             
-            if ~isequal(lims(1:2,:), axlims(1:2,:))
+            isin = bsxfun(@ge, lims, axlims(:,1)) & bsxfun(@le, lims, axlims(:,2));
+%             is01 = lims >= 0 & lims <= 1;
+            
+            if ~all(isin(:))
+%                 if all(is01(:)) % Scaled
                 s = diff(axlims,1,2);
                 o = axlims(:,1);
                 vd = cellfun(@(v) bsxfun(@plus, bsxfun(@times, double(v), s), o), vd, 'uni', 0); 
             end
+
             
             sd = get(Fp, 'StripData');
-            xyz = cellfun(@(v,s) v(:,s(1:end-1)), vd, sd, 'uni', 0);
+            xyz = cellfun(@(v,s) double(v(:,s(1:end-1))), vd, sd, 'uni', 0);
             idx = zeros(np,1);
+            
+            if irrflag
+%                 error('Still figuring this one out for irregular grids');
+                F = scatteredInterpolant(x(:), y(:), z(:));
+            else
+                F = griddedInterpolant({x,y},z');
+            end
+               
             for ii = 1:np
-                tmp = interp2(x,y,z,xyz{ii}(1,:), xyz{ii}(2,:));
+                tmp = F(xyz{ii}(1,:), xyz{ii}(2,:));
+%                 tmp = interp2(x,y,z,xyz{ii}(1,:), xyz{ii}(2,:));
                 [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
                 [~,idx(ii)] = max(ntmp);
             end
@@ -427,15 +511,35 @@ switch Opt.method
             % do it for me.
             
             isn = isnan(z);
-            [zi, A] = fillnan(z', {x(1,:), y(:,1)});
+            if irrflag
+                [zi, A] = fillnan(z, {x,y});
+            else
+                [zi, A] = fillnan(z', {x, y});
+                zi = zi';
+            end
             
-            S  = contourcs(x(1,:), y(:,1), zi', clev);
-            Sn = contourcs(x(1,:), y(:,1), double(isnan(z)), [0 0]);
+            if irrflag
+                [c, htmp] = contour(x,y,zi,clev);
+                S = contourcs(c, 'cmat');
+                delete(htmp);
+                [c, htmp] = contour(x,y,double(isnan(z)), [0 0]);
+                Sn = contourcs(c, 'cmat');
+                delete(htmp);
+            else
+                S  = contourcs(x, y, zi, clev);
+                Sn = contourcs(x, y, double(isnan(z)), [0 0]);
+            end
             
             S = cat(1, S, Sn);
             nnan = length(Sn);
         else
-            S = contourcs(x(1,:),y(:,1),z,clev);
+            if irrflag
+                [c, htmp] = contour(x,y,z,clev);
+                S = contourcs(c, 'cmat');
+                delete(htmp);
+            else
+                S = contourcs(x,y,z,clev);
+            end
             nnan = 0;
         end
 
@@ -529,14 +633,21 @@ switch Opt.method
         % There's probably a more elegant way to figure out which color
         % goes where, but this works for now 
         
+        if irrflag
+            F = scatteredInterpolant(x(:), y(:), z(:));
+        else
+            F = griddedInterpolant({x,y},z');
+        end
+        
         lev = zeros(np,1);
         for ii = 1:np
             vx = v{ii}(:,1);
             vy = v{ii}(:,2);
             fx = mean(vx(f{ii}),2);
             fy = mean(vy(f{ii}),2);
-            
-            tmp = interp2(x,y,z,fx,fy);
+               
+            tmp = F(fx,fy);
+%             tmp = interp2(x,y,z,fx,fy);
             [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
             if ~any(ntmp)
                 lev(ii) = length(clev)+2;
@@ -570,8 +681,9 @@ end
 if showcb && hascbcoord
     set(cbax, 'position', cbarcoord);
 end
+
 if showcb
-    uistack(cbax, 'top');
+    uistack(cbax, 'top'); % Has to be done after plotting, but resets color in R2014b-recolor... aaargh!
 end
 
 %------------------------
@@ -582,8 +694,12 @@ if nargout > 0
     varargout{1} = hout;
 end
 
+
+% Minmax
+
 function a = minmax(b)
 a = [min(b(:)) max(b(:))];
+
 
 
 
