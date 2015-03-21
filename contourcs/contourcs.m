@@ -15,6 +15,21 @@ function Cout = contourcs(varargin)
 % Revision History:
 %  - (Aug. 11, 2010) : initial release
 
+% Modification by K.Kearney: Allow either contourc-style input, or a
+% pre-generation contour matrix.  Indicate the latter with the string
+% 'cmat' as a second input.
+
+if nargin == 2 && strcmp(varargin{2}, 'cmat')
+    C = varargin{1};
+else
+    % Run CONTOURC and get output matrix
+    try
+       C = contourc(varargin{:});
+    catch ME
+       throwAsCaller(ME);
+    end
+end
+
 % Run CONTOURC and get output matrix
 try
    C = contourc(varargin{:});
