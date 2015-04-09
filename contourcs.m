@@ -31,11 +31,11 @@ else
 end
 
 % Run CONTOURC and get output matrix
-try
-   C = contourc(varargin{:});
-catch ME
-   throwAsCaller(ME);
-end
+% try
+%    C = contourc(varargin{:});
+% catch ME
+%    throwAsCaller(ME);
+% end
 
 % Count number of contour segments found (K)
 K = 0;
