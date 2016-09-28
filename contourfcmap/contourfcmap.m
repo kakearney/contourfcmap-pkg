@@ -110,7 +110,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 %              [.8 .8 .8], [.2 .2 .2], 'eastoutside')
 % 
 
-% Copyright 2010-2015 Kelly Kearney
+% Copyright 2010-2016 Kelly Kearney
 
 %------------------------
 % Parse input
@@ -127,7 +127,7 @@ Opt.method = 'recolor';
 Opt.flag = true;
 
 isc = cellfun(@ischar, varargin);
-if ~mod(length(varargin),2) & all(isc(1:2:end))
+if ~mod(length(varargin),2) && all(isc(1:2:end))
     
     % New syntax
     
@@ -136,7 +136,11 @@ if ~mod(length(varargin),2) & all(isc(1:2:end))
 else
     % Old syntax
     
-    narginchk(5,9);
+    if verLessThan('matlab', 'R2011b')
+        error(nargchk(5,9,nargin));
+    else
+        narginchk(5,9);
+    end
     
     fld = fieldnames(Opt);
     for ii = 1:length(varargin)
