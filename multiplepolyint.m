@@ -1,8 +1,9 @@
-function [xnew, ynew, indices] = multiplepolyint(x, y, flag)
+function [xnew, ynew, indices] = multiplepolyint(x, y, varargin)
 %MULTIPLEPOLYINT Multiple polygon intersection
 %
 % [xnew, ynew, indices] = multiplepolyint(x, y)
-% [xnew, ynew, indices] = multiplepolyint(x, y, flag)
+% [xnew, ynew, indices] = multiplepolyint(x, y, p1, v1, ...)
+% [xnew, ynew, indices] = multiplepolyint(x, y, fastflag)
 %
 % Determines the regions where polygons overlap, distinguishing between
 % each set of overlaps.
@@ -13,11 +14,34 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, flag)
 %
 %   y:          cell array of y vertices for each input polygon
 %
-%   flag:       logical scalar, indicating whether to use fast method
+% Optional input parameters (passed as parameter/value pairs)
+%
+%   fast:       logical scalar, indicating whether to use fast method
 %               (true) or not (false).  Default is false.  The fast method
 %               basically skips over polybool and uses gpcmex directly;
 %               because it accesses private functions in the Mapping
 %               Toolbox, it may be more fragile than the default method.
+%
+%               Note: Can also be passed as a third input, as shown in the
+%               third syntax above.  This option maintains
+%               back-compatibility with older versions of this function.
+%
+%   v2gpcpath:  path to your local copy of vectorsToGPC.m.  The default is 
+%               [matlabroot]/toolbox/map/map/private/vectorsToGPC.m, where
+%               [matlabroot] is the directory where the MATLAB software is
+%               installed.
+%
+%   gpcmexpath: path to your local copy of the gpcmex mex file.  The
+%               default is
+%               [matlabroot]/toolbox/map/map/private/gpcmex.[mex], where
+%               [matlabroot] is the directory where the MATLAB software is
+%               installed, and [mex] is the appropriate mex file extension
+%               for your operating system. 
+%
+%   vfgpcpath:  path to your local copy of vectorsFromGPC.m.  The default
+%               is [matlabroot]/toolbox/map/map/private/vectorsFromGPC.m,
+%               where [matlabroot] is the directory where the MATLAB
+%               software is installed.   
 %
 % Output variables:
 %
@@ -36,6 +60,24 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, flag)
 % Check input
 %------------------------------
 
+if nargin == 3 % For old syntax
+    Opt.fast = varargin{1}; 
+    Opt.v2gpcpath  = '';
+    Opt.gpcmexpath = '';
+    Opt.vfgpcpath  = '';
+    validateattributes(Opt.fast, {'logical'}, {'scalar'});
+else
+    p = inputParser;
+
+    p.addParameter('fast',       false, @(x) validateattributes(x, {'logical'}, {'scalar'}));
+    p.addParameter('v2gpcpath',  '',    @(x) validateattributes(x, {'char'}, {}));
+    p.addParameter('gpcmexpath', '',    @(x) validateattributes(x, {'char'}, {}));
+    p.addParameter('vfgpcpath',  '',    @(x) validateattributes(x, {'char'}, {}));
+    p.parse(varargin{:});
+
+    Opt = p.Results;
+end
+
 if ~iscell(x) || ~iscell(y) || ~isequal(size(x), size(y))
     error('x and y must be cell arrays with the same dimensions');
 end
@@ -46,36 +88,54 @@ end
 x = x(:);
 y = y(:);
 
-if nargin < 3
-    flag = false;
-end
-if ~(isscalar(flag) && islogical(flag))
-    error('flag should be a logical value');
-end
-
 % If the fast flag is on, we need access to two functions hidden in a
 % private directory of the mapping toolbox.
 
-if flag
-    v2gpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsToGPC.m');
-    vfgpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsFromGPC.m');
-    gpcmexpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','gpcmex.mexmaci64');
-    if ~exist(vfgpcpath, 'file') || ~exist(gpcmexpath, 'file')
-        error('multiplepolyint:privatepath', ...
-            ['Please modify the paths in multiplepolyint.m (above this) to point to\n', ...
-             'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n', ...
-             'be found in the toolbox/map/map/private folder of the Mapping Toolbox']);
+if Opt.fast
+    
+    msg = ['Could not find copies of vectorsToGPC.m (%s) and/or ', ...
+           'mex function gpcmex (%s).  Please verify these paths ', ...
+           '(if you passed them as inputs) or provide the ', ...
+           'appropriate paths (if the default is not ', ...
+           'working). The proper files should be found in the ', ...
+           'toolbox/map/map/private folder under the ', ...
+           'directory where Matlab is installed'];
+
+    mappath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private');
+    if isempty(Opt.v2gpcpath)
+        Opt.v2gpcpath = fullfile(mappath, 'vectorsToGPC.m');
     end
-    vectorsToGPC = function_handle(v2gpcpath);
-    vectorsFromGPC = function_handle(vfgpcpath);
-    gpcmex = function_handle(gpcmexpath);
+    if isempty(Opt.vfgpcpath)
+        Opt.vfgpcpath = fullfile(mappath, 'vectorsFromGPC.m');
+    end
+    
+    if isempty(Opt.gpcmexpath)
+        Gpc = dir(fullfile(mappath, 'gpcmex*'));
+        if length(Gpc) < 1
+            error('multiplepolyint:gpcmex', 'Could not find gpcmex in default location (%s); please pass as input', mappath);
+        end
+        if length(Gpc) > 1
+            warning('Mutiple gpcmex files found; using %s; to change, include path as input parameter', Gpc(1).name);
+            Gpc = Gpc(1);
+        end
+        Opt.gpcmexpath = fullfile(mappath, Gpc.name);
+            
+    end
+    
+    if ~exist(Opt.vfgpcpath, 'file') || ~exist(Opt.gpcmexpath, 'file')
+        error('multiplepolyint:privatepath', msg, Opt.v2gpcpath, Opt.gpcmexpath);
+    end
+    
+    vectorsToGPC = function_handle(Opt.v2gpcpath);
+    vectorsFromGPC = function_handle(Opt.vfgpcpath);
+    gpcmex = function_handle(Opt.gpcmexpath);
 end
 
 %------------------------------
 % Find intersections
 %------------------------------
 
-if ~flag % The original way, using polybool
+if ~Opt.fast % The original way, using polybool
 
     xnew = x(1);
     ynew = y(1);
