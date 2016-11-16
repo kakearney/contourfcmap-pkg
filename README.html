@@ -1,0 +1,456 @@
+
+<!DOCTYPE html
+PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+--><title>contourfcmap.m: filled contour plot with precise colormap</title><meta name="generator" content="MATLAB 9.0"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2016-11-15"><meta name="DC.source" content="./readmeExtras/README.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+</style></head><body><div class="content"><h1><tt>contourfcmap.m</tt>: filled contour plot with precise colormap</h1><!--introduction--><p>Author: Kelly Kearney</p><p>This repository includes the code for the <tt>contourfcmap.m</tt> Matlab function, along with all dependent functions required to run it.</p><p>This function creates a shaded contour map, similar to that created by the contourf function.  However, the relationship between a contourf plot and its colormap (i.e. exactly which color corresponds to each contour interval), can often be confusing and inconsistent.  This function instead allows the user to specify exactly which colors to use in each interval, and also to choose colors for regions that exceed the contour line limits.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Getting started</a></li><li><a href="#2">Syntax</a></li><li><a href="#3">Examples</a></li><li><a href="#7">Contributions</a></li></ul></div><h2>Getting started<a name="1"></a></h2><p><b>Prerequisites</b></p><p>This function requires Matlab R14 or later.</p><p><b>Downloading and installation</b></p><p>This code can be downloaded from <a href="https://github.com/kakearney/contourfcmap-pkg/">Github</a> or the <a href="http://www.mathworks.com/matlabcentral/fileexchange/29638">MatlabCentral File Exchange</a>.  The File Exchange entry is updated daily from the GitHub repository.</p><p><b>Matlab Search Path</b></p><p>The following folders need to be added to your Matlab Search path (via <tt>addpath</tt>, <tt>pathtool</tt>, etc.):</p><pre class="language-matlab">contourfcmap-pkg/FEX-function_handle
+contourfcmap-pkg/contourcs
+contourfcmap-pkg/contourfcmap
+contourfcmap-pkg/fillnan
+contourfcmap-pkg/multiplepolyint
+contourfcmap-pkg/parsepv
+</pre><h2>Syntax<a name="2"></a></h2><pre>h = contourfcmap(x,y,z,clev,cmap,lo,hi,cbarloc)
+h = contourfcmap(x,y,z,clev,cmap)
+h = contourfcmap(x,y,z,clev,cmap,lo)
+h = contourfcmap(x,y,z,clev,cmap,lo,hi)
+h = contourfcmap(x,y,z,clev,cmap, param1, val1, ...)</pre><p>Input variables</p><div><ul><li><tt>x</tt>:          x-coordinates of grid, following size restrictions of surf               command</li><li><tt>y</tt>:          y-coordinates of grid, following size restrictions of surf               command</li><li><tt>z</tt>:          array of data to be contoured, following size restritions               of surf command</li><li><tt>clev</tt>:       vector of length n, contour levels, must be monotonically               increasing</li><li><tt>cmap</tt>:       n-1 x 3 colormap array, specifying colors used to shade               each contour interval</li></ul></div><p>Optional input variables (passed as parameter/value pairs)</p><div><ul><li><tt>lo</tt>:         1 x 3 colormap array, specifying color used for all data               falling below the first contour level.  If not included or               empty, default will be to white.</li></ul></div><div><ul><li><tt>hi</tt>:         1 x 3 colormap array, specifying color used for all data               falling above the last contour level.  If not included or               empty, default will be to white.</li></ul></div><div><ul><li><tt>cbarloc</tt>:    string specifying colorbar location (see colorbar),  or a               1 x 4 position vector for colorbar.  If not included, no               colorbar will be created.  Note that the colorbar created               is not a colorbar object, but just an axis with plotted               patches; it is for labeling only and is not linked to the               "peer axis" in any way. Default is no colorbar.</li></ul></div><div><ul><li><tt>evencb</tt>:     logical scalar.  If true, intervals on the colorbar will               be evenly spaced, regardless of value.  If false, ticks               will correspond to clev values. If not included or empty,               default is false.</li></ul></div><div><ul><li><tt>method</tt>:     string specifying calculation method.               'recolor' creates a contourf object, and                               then change the color properties of the                               underlying components. Note: In 2014b,                               recolor will not persist when saving to                               file via anything that uses print.m                               (including print, saveas, export_fig, etc).               'calccontour' creates new patch and line objects from                               scratch.  This method requires the Mapping                               Toolbox.  It can be beneficial if you want                               more consistency between output regardless                               of which version of Matlab is being run.                               It also properly fills regions falling                               below the lowest contour level and above                               the highest contour level, which isn't                               always the case with contourf-generated                               contour objects.</li></ul></div><div><ul><li><tt>flag</tt>:       logical flag indicating whether to use the fast version of               multiplepolyint.m (only applicable if method is               'calccontour').  In plots with a large number of contour               lines, this significantly speeds up the calculation.               However, it works by directly calling a private mex               function in the Mapping Toolbox, so it might be a bit less               stable than the slower version, and may break in future               releases. Default is true.</li></ul></div><p>Output variables:</p><div><ul><li><tt>h.c</tt>: contour matrix for filled contour plot ('recolor'                       method only)</li><li><tt>h.h</tt>:      handle to contourgroup or contour object ('recolor'                       method only)</li><li><tt>h.p</tt>:      handles to patch objects (the filled contour                       regions) ('calccontour' method only)</li><li><tt>h.l</tt>:      handles to line objects (the contour lines)                       ('calccontour' method only)</li><li><tt>h.cbax</tt>:   handle to axis of colorbar</li></ul></div><h2>Examples<a name="3"></a></h2><p>First we'll plot a contourf plot using the standard Matlab functions. Without labeling the contour lines, it's difficult to tell which values in the colorbar correspond to the color intervals in the contuorf plot.</p><pre class="codeinput">count = 0;
+
+<span class="comment">% Data</span>
+
+[x,y] = meshgrid(linspace(0,1,100));
+z = peaks(100);
+clev = [-5 -3 -2:.5:2 3 5];
+
+<span class="comment">% Set up axes</span>
+
+h.fig = figure(<span class="string">'color'</span>, <span class="string">'w'</span>);
+h.ax(1) = axes(<span class="string">'position'</span>, [0.05  0.25 0.425 0.5]);
+h.ax(2) = axes(<span class="string">'position'</span>, [0.525 0.25 0.425 0.5]);
+
+<span class="comment">% Plot</span>
+
+axes(h.ax(1));
+contourf(x,y,z,clev);
+cb = colorbar(<span class="string">'eastoutside'</span>);
+colormap(h.ax(1), jet);
+title(h.ax(1), <span class="string">'contourf'</span>);
+</pre><img vspace="5" hspace="5" src="./readmeExtras/README_01.png" alt=""> <p>Using contourfcmap, we can set the colors explictly, so it's much easier to tell exactly which color corresponds to which value.</p><pre class="codeinput">axes(h.ax(2));
+hc = contourfcmap(x,y,z,clev,jet(12), <span class="keyword">...</span>
+<span class="string">'lo'</span>, [.8 .8 .8], <span class="string">'hi'</span>, [.2 .2 .2], <span class="string">'cbarloc'</span>, <span class="string">'eastoutside'</span>, <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'calccontour'</span>);
+title(h.ax(2), <span class="string">'contourfcmap'</span>);
+</pre><img vspace="5" hspace="5" src="./readmeExtras/README_02.png" alt=""> <p>If you prefer, you can set the colorbar to show the contour intervals evenly-spaced, even if the values aren't.</p><pre class="codeinput">delete(hc.cbax);
+set(h.ax(2), <span class="string">'position'</span>, [0.525 0.25 0.425 0.5]);
+
+hc = contourfcmap(x,y,z,clev,jet(12), <span class="keyword">...</span>
+<span class="string">'lo'</span>, [.8 .8 .8], <span class="string">'hi'</span>, [.2 .2 .2], <span class="string">'cbarloc'</span>, <span class="string">'eastoutside'</span>, <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'calccontour'</span>, <span class="string">'evencb'</span>, true);
+title(h.ax(2), <span class="string">'contourfcmap'</span>);
+</pre><img vspace="5" hspace="5" src="./readmeExtras/README_03.png" alt=""> <p><b>2014b updates</b></p><p>In the 2014b release, Matlab introduced new handle graphics objects. Contour objects got a complete makeover with this update, and I had to completely rewrite contourfcmap to accomodate these changes.  The new version offers two methods to create the contours.</p><p><tt>recolor</tt>: This is similar to the old pre-2014b version of contourfcmap, and is the default option.  It takes the existing contour objects and simply recolors the children patches (pre-2014b) or TriangleStrips (2014b+).  This method is quick, efficient, and requires no outside toolboxes.  But it has a few drawbacks:</p><div><ul><li>It inherits some weaknesses from contourf itself in the way it handles regions lower than the lowest specified contour or higher than the highest specified contour.  Sometimes these regions are left empty, and whether or not the regions are shaded vary by Matlab release.</li><li>In 2014b+, the recolor option has a tendency to get undone very easily.  Changing the colormap, adding a colorbar, and most frustratingly, printing figures to file (using anything that relies on the print command, including print, saveas, export_fig, etc) undoes it.  The only way I've found to save these figures is by doing a screenshot (i.e. <tt>im = frame2im(getframe(gcf); imwrite(im, 'myfile.png', 'png')</tt>).</li><li>Like contourf itself, the contour object handle returned by pre-2014b and 2014b+ are different classes (double contourgroup object vs graphics object Contour object) with different properties, and in some applications this inconsistency can make programming across Matlab versions difficult.</li><li>In 2014b+, the recoloring processes applies to undocumented grpahics object properties, so this code could break in future updates.</li></ul></div><p><tt>calccontour</tt>: With this method, I calculate contour patches and lines from scratch, and plot these lines and patches in place of a contour object.  This method was originally added as a stopgap solution for the 2014b release, before I managed to explore the undocumented properties of the new contour objects.  It's more resource intensive than the original, and requires the Mapping Toolbox (for its many polygon-geometry-related functions), but it solves the problems encountered with the recolor method.</p><p>This example compares the two options. The results you see will be slightly different in you're running a R2014a or earlier.  Note that to get the recolor method to show up, I have to create those two plots last (otherwise the colorbars will revert the colors).</p><pre class="codeinput">[x,y] = meshgrid(linspace(0,1,100));
+z = peaks(100);
+clev = [-5 -3 -2:.5:2 3 5];
+cmap = cool(length(clev)-1);
+
+v = ver(<span class="string">'matlab'</span>);
+v = regexprep(v.Release, <span class="string">'[\(\)]'</span>, <span class="string">''</span>);
+clf;
+ax(1) = subplot(2,2,1);
+hh = contourfcmap(x,y,z,clev,cmap, <span class="keyword">...</span>
+<span class="string">'lo'</span>, [0 0 1], <span class="keyword">...</span>
+<span class="string">'hi'</span>, [1 1 0], <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'calccontour'</span>, <span class="keyword">...</span>
+<span class="string">'cbarloc'</span>, <span class="string">'eastoutside'</span>);
+title(ax(1), {sprintf(<span class="string">'calccontour method (%s)'</span>, v), <span class="string">'Enclosed too-low region'</span>});
+set(hh.cbax, <span class="string">'fontsize'</span>, 8);
+
+clev = 1:5;
+cmap = cool(length(clev)-1);
+
+ax(3) = subplot(2,2,3);
+hh = contourfcmap(x,y,z,clev,cmap, <span class="keyword">...</span>
+<span class="string">'lo'</span>, [0 0 1], <span class="keyword">...</span>
+<span class="string">'hi'</span>, [1 1 0], <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'calccontour'</span>, <span class="keyword">...</span>
+<span class="string">'cbarloc'</span>, <span class="string">'eastoutside'</span>);
+title(ax(3), {sprintf(<span class="string">'calccontour method (%s)'</span>, v), <span class="string">'Open too-low region'</span>});
+set(hh.cbax, <span class="string">'fontsize'</span>, 8);
+
+ax(4) = subplot(2,2,4);
+hh = contourfcmap(x,y,z,clev,cmap, <span class="keyword">...</span>
+<span class="string">'lo'</span>, [0 0 1], <span class="keyword">...</span>
+<span class="string">'hi'</span>, [1 1 0], <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'recolor'</span>);
+title(ax(4), {sprintf(<span class="string">'recolor method (%s)'</span>, v), <span class="string">'Open too-low region'</span>});
+
+clev = [-5 -3 -2:.5:2 3 5];
+cmap = cool(length(clev)-1);
+
+ax(2) = subplot(2,2,2);
+hh = contourfcmap(x,y,z,clev,cmap, <span class="keyword">...</span>
+<span class="string">'lo'</span>, [0 0 1], <span class="keyword">...</span>
+<span class="string">'hi'</span>, [1 1 0], <span class="keyword">...</span>
+<span class="string">'method'</span>, <span class="string">'recolor'</span>);
+title(ax(2), {sprintf(<span class="string">'recolor method (%s)'</span>, v), <span class="string">'Enclosed too-low region'</span>});
+
+set(ax([2 4]), <span class="string">'dataaspectratio'</span>, ax(1,1).DataAspectRatio)
+
+<span class="comment">% Take snapshot of the figure and display as image, since the recolor</span>
+<span class="comment">% method will reset on printing on my computer</span>
+
+im = getframe(gcf);
+clf;
+axes(<span class="string">'position'</span>, [0 0 1 1]);
+image(im.cdata);
+set(gca, <span class="string">'visible'</span>, <span class="string">'off'</span>);
+</pre><img vspace="5" hspace="5" src="./readmeExtras/README_04.png" alt=""> <h2>Contributions<a name="7"></a></h2><p>Community contributions to this package are welcome!</p><p>To report bugs, please submit <a href="https://github.com/kakearney/example-pkg/issues">an issue</a> on GitHub and include:</p><div><ul><li>your operating system</li><li>your version of Matlab and all relevant toolboxes (type <tt>ver</tt> at the Matlab command line to get this info)</li><li>code/data to reproduce the error or buggy behavior, and the full text of any error messages received</li></ul></div><p>Please also feel free to submit enhancement requests, or to send pull requests (via GitHub) for bug fixes or new features.</p><p>I do monitor the MatlabCentral FileExchange entry for any issues raised in the comments, but would prefer to track issues on GitHub.</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% |contourfcmap.m|: filled contour plot with precise colormap
+% Author: Kelly Kearney
+%
+% This repository includes the code for the |contourfcmap.m| Matlab function,
+% along with all dependent functions required to run it. 
+%
+% This function creates a shaded contour map, similar to that created by
+% the contourf function.  However, the relationship between a contourf plot
+% and its colormap (i.e. exactly which color corresponds to each contour
+% interval), can often be confusing and inconsistent.  This
+% function instead allows the user to specify exactly which colors to use
+% in each interval, and also to choose colors for regions that exceed the
+% contour line limits.
+%
+%% Getting started
+%
+% *Prerequisites*
+%
+% This function requires Matlab R14 or later.
+%
+% *Downloading and installation*
+%
+% This code can be downloaded from <https://github.com/kakearney/contourfcmap-pkg/ Github>
+% or the
+% <http://www.mathworks.com/matlabcentral/fileexchange/29638
+% MatlabCentral File Exchange>.  The File Exchange entry is updated daily
+% from the GitHub repository.   
+%
+% *Matlab Search Path*
+%
+% The following folders need to be added to your Matlab Search path (via
+% |addpath|, |pathtool|, etc.):
+%
+%   contourfcmap-pkg/FEX-function_handle
+%   contourfcmap-pkg/contourcs
+%   contourfcmap-pkg/contourfcmap
+%   contourfcmap-pkg/fillnan
+%   contourfcmap-pkg/multiplepolyint
+%   contourfcmap-pkg/parsepv
+
+%% Syntax
+%
+%  h = contourfcmap(x,y,z,clev,cmap,lo,hi,cbarloc)
+%  h = contourfcmap(x,y,z,clev,cmap)
+%  h = contourfcmap(x,y,z,clev,cmap,lo)
+%  h = contourfcmap(x,y,z,clev,cmap,lo,hi)
+%  h = contourfcmap(x,y,z,clev,cmap, param1, val1, ...)
+%
+% Input variables
+%
+% * |x|:          x-coordinates of grid, following size restrictions of surf
+%               command 
+% * |y|:          y-coordinates of grid, following size restrictions of surf
+%               command 
+% * |z|:          array of data to be contoured, following size restritions
+%               of surf command 
+% * |clev|:       vector of length n, contour levels, must be monotonically
+%               increasing 
+% * |cmap|:       n-1 x 3 colormap array, specifying colors used to shade
+%               each contour interval 
+%
+% Optional input variables (passed as parameter/value pairs)
+%
+% * |lo|:         1 x 3 colormap array, specifying color used for all data
+%               falling below the first contour level.  If not included or
+%               empty, default will be to white. 
+%
+% * |hi|:         1 x 3 colormap array, specifying color used for all data
+%               falling above the last contour level.  If not included or
+%               empty, default will be to white.
+%
+% * |cbarloc|:    string specifying colorbar location (see colorbar),  or a 
+%               1 x 4 position vector for colorbar.  If not included, no
+%               colorbar will be created.  Note that the colorbar created
+%               is not a colorbar object, but just an axis with plotted
+%               patches; it is for labeling only and is not linked to the
+%               "peer axis" in any way. Default is no colorbar.
+%
+% * |evencb|:     logical scalar.  If true, intervals on the colorbar will
+%               be evenly spaced, regardless of value.  If false, ticks
+%               will correspond to clev values. If not included or empty,
+%               default is false.
+%
+% * |method|:     string specifying calculation method.
+%               'recolor' creates a contourf object, and
+%                               then change the color properties of the
+%                               underlying components. Note: In 2014b,
+%                               recolor will not persist when saving to
+%                               file via anything that uses print.m
+%                               (including print, saveas, export_fig, etc).
+%               'calccontour' creates new patch and line objects from
+%                               scratch.  This method requires the Mapping
+%                               Toolbox.  It can be beneficial if you want
+%                               more consistency between output regardless
+%                               of which version of Matlab is being run.
+%                               It also properly fills regions falling
+%                               below the lowest contour level and above
+%                               the highest contour level, which isn't
+%                               always the case with contourf-generated
+%                               contour objects.
+%
+% * |flag|:       logical flag indicating whether to use the fast version of
+%               multiplepolyint.m (only applicable if method is
+%               'calccontour').  In plots with a large number of contour
+%               lines, this significantly speeds up the calculation.
+%               However, it works by directly calling a private mex
+%               function in the Mapping Toolbox, so it might be a bit less
+%               stable than the slower version, and may break in future
+%               releases. Default is true.
+%
+% Output variables:
+%
+% * |h.c|: contour matrix for filled contour plot ('recolor'
+%                       method only)
+% * |h.h|:      handle to contourgroup or contour object ('recolor'
+%                       method only)
+% * |h.p|:      handles to patch objects (the filled contour
+%                       regions) ('calccontour' method only)
+% * |h.l|:      handles to line objects (the contour lines)
+%                       ('calccontour' method only) 
+% * |h.cbax|:   handle to axis of colorbar
+
+
+%% Examples
+%
+% First we'll plot a contourf plot using the standard Matlab functions.
+% Without labeling the contour lines, it's difficult to tell which values
+% in the colorbar correspond to the color intervals in the contuorf plot.
+
+count = 0;
+
+% Data
+
+[x,y] = meshgrid(linspace(0,1,100));
+z = peaks(100);
+clev = [-5 -3 -2:.5:2 3 5];
+
+% Set up axes
+
+h.fig = figure('color', 'w');
+h.ax(1) = axes('position', [0.05  0.25 0.425 0.5]);
+h.ax(2) = axes('position', [0.525 0.25 0.425 0.5]);
+
+% Plot
+
+axes(h.ax(1));
+contourf(x,y,z,clev);
+cb = colorbar('eastoutside');
+colormap(h.ax(1), jet);
+title(h.ax(1), 'contourf');
+
+%%
+% Using contourfcmap, we can set the colors explictly, so it's much easier
+% to tell exactly which color corresponds to which value.
+
+axes(h.ax(2));
+hc = contourfcmap(x,y,z,clev,jet(12), ...
+'lo', [.8 .8 .8], 'hi', [.2 .2 .2], 'cbarloc', 'eastoutside', ...
+'method', 'calccontour');
+title(h.ax(2), 'contourfcmap');  
+
+%%
+% If you prefer, you can set the colorbar to show the contour intervals
+% evenly-spaced, even if the values aren't.
+
+delete(hc.cbax);
+set(h.ax(2), 'position', [0.525 0.25 0.425 0.5]);         
+
+hc = contourfcmap(x,y,z,clev,jet(12), ...
+'lo', [.8 .8 .8], 'hi', [.2 .2 .2], 'cbarloc', 'eastoutside', ...
+'method', 'calccontour', 'evencb', true);
+title(h.ax(2), 'contourfcmap');  
+
+%%
+%
+% *2014b updates*
+%
+% In the 2014b release, Matlab introduced new handle graphics objects.
+% Contour objects got a complete makeover with this update, and I
+% had to completely rewrite contourfcmap to accomodate these changes.  The
+% new version offers two methods to create the contours.  
+%
+% |recolor|: This is similar to the old pre-2014b version of contourfcmap,
+% and is the default option.  It takes the existing contour objects and
+% simply recolors the children patches (pre-2014b) or TriangleStrips
+% (2014b+).  This method is quick, efficient, and requires no outside
+% toolboxes.  But it has a few drawbacks: 
+%
+% * It inherits some weaknesses from contourf itself in the way it handles regions lower than the lowest specified contour or higher than the highest specified contour.  Sometimes these regions are left empty, and whether or not the regions are shaded vary by Matlab release.
+% * In 2014b+, the recolor option has a tendency to get undone very easily.  Changing the colormap, adding a colorbar, and most frustratingly, printing figures to file (using anything that relies on the print command, including print, saveas, export_fig, etc) undoes it.  The only way I've found to save these figures is by doing a screenshot (i.e. |im = frame2im(getframe(gcf); imwrite(im, 'myfile.png', 'png')|).
+% * Like contourf itself, the contour object handle returned by pre-2014b and 2014b+ are different classes (double contourgroup object vs graphics object Contour object) with different properties, and in some applications this inconsistency can make programming across Matlab versions difficult.
+% * In 2014b+, the recoloring processes applies to undocumented grpahics object properties, so this code could break in future updates.
+%
+% |calccontour|: With this method, I calculate contour patches and lines
+% from scratch, and plot these lines and patches in place of a contour
+% object.  This method was originally added as a stopgap solution for the
+% 2014b release, before I managed to explore the undocumented properties of
+% the new contour objects.  It's more resource intensive than the original,
+% and requires the Mapping Toolbox (for its many polygon-geometry-related
+% functions), but it solves the problems encountered with the recolor
+% method.     
+%
+% This example compares the two options. The results you see will
+% be slightly different in you're running a R2014a or earlier.  Note that
+% to get the recolor method to show up, I have to create those two plots
+% last (otherwise the colorbars will revert the colors).
+
+[x,y] = meshgrid(linspace(0,1,100));
+z = peaks(100);
+clev = [-5 -3 -2:.5:2 3 5];
+cmap = cool(length(clev)-1);
+
+v = ver('matlab');
+v = regexprep(v.Release, '[\(\)]', '');
+clf;
+ax(1) = subplot(2,2,1);
+hh = contourfcmap(x,y,z,clev,cmap, ...
+'lo', [0 0 1], ...
+'hi', [1 1 0], ...
+'method', 'calccontour', ...
+'cbarloc', 'eastoutside');
+title(ax(1), {sprintf('calccontour method (%s)', v), 'Enclosed too-low region'}); 
+set(hh.cbax, 'fontsize', 8);
+
+clev = 1:5;
+cmap = cool(length(clev)-1);
+
+ax(3) = subplot(2,2,3);
+hh = contourfcmap(x,y,z,clev,cmap, ...
+'lo', [0 0 1], ...
+'hi', [1 1 0], ...
+'method', 'calccontour', ...
+'cbarloc', 'eastoutside');
+title(ax(3), {sprintf('calccontour method (%s)', v), 'Open too-low region'}); 
+set(hh.cbax, 'fontsize', 8);
+
+ax(4) = subplot(2,2,4);
+hh = contourfcmap(x,y,z,clev,cmap, ...
+'lo', [0 0 1], ...
+'hi', [1 1 0], ...
+'method', 'recolor');
+title(ax(4), {sprintf('recolor method (%s)', v), 'Open too-low region'});
+
+clev = [-5 -3 -2:.5:2 3 5];
+cmap = cool(length(clev)-1);
+
+ax(2) = subplot(2,2,2);
+hh = contourfcmap(x,y,z,clev,cmap, ...
+'lo', [0 0 1], ...
+'hi', [1 1 0], ...
+'method', 'recolor');
+title(ax(2), {sprintf('recolor method (%s)', v), 'Enclosed too-low region'}); 
+
+set(ax([2 4]), 'dataaspectratio', ax(1,1).DataAspectRatio)
+
+% Take snapshot of the figure and display as image, since the recolor
+% method will reset on printing on my computer
+
+im = getframe(gcf);
+clf;
+axes('position', [0 0 1 1]);
+image(im.cdata);
+set(gca, 'visible', 'off');
+
+
+%% Contributions
+%
+% Community contributions to this package are welcome!
+% 
+% To report bugs, please submit
+% <https://github.com/kakearney/example-pkg/issues an issue> on GitHub and
+% include:  
+% 
+% * your operating system
+% * your version of Matlab and all relevant toolboxes (type |ver| at the Matlab command line to get this info)  
+% * code/data to reproduce the error or buggy behavior, and the full text of any error messages received 
+% 
+% Please also feel free to submit enhancement requests, or to send pull
+% requests (via GitHub) for bug fixes or new features. 
+% 
+% I do monitor the MatlabCentral FileExchange entry for any issues raised
+% in the comments, but would prefer to track issues on GitHub. 
+% 
+
+
+##### SOURCE END #####
+--></body></html>
