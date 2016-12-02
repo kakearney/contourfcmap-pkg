@@ -187,7 +187,7 @@ if nargin >= 8 && ~isempty(Opt.cbarloc)
     pos = {'north', 'south', 'east', 'west', 'northoutside', 'southoutside', 'eastoutside', 'westoutside'};
     if ischar(Opt.cbarloc)
         if ~any(strcmp(lower(Opt.cbarloc), pos))
-            error('Unrecognizd colorbar position');
+            error('Unrecognized colorbar position');
         end
     elseif ~isequal(size(Opt.cbarloc), [1 4]) || any(Opt.cbarloc > 1 | Opt.cbarloc < 0)
         error('cbarloc must be position string or  1 x 4 normalized position');
