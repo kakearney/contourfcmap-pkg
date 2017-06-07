@@ -365,7 +365,11 @@ switch Opt.method
 
             hpatch = get(h, 'children');
 
-            cdata = cell2mat(get(hpatch, 'cdata'));
+            if isscalar(hpatch)
+                cdata = get(hpatch, 'cdata');
+            else
+                cdata = cell2mat(get(hpatch, 'cdata'));
+            end
 
             % Mark too-high contours
 
@@ -446,6 +450,9 @@ switch Opt.method
             % scaled values exceed that by a few thousandths... still not
             % very clear on what's going on here).
             
+            if ~iscell(vd)
+                vd = {vd};
+            end
             lims = [min(cat(2, vd{:}), [], 2) max(cat(2, vd{:}), [], 2)];
             axlims = get(ax, {'xlim', 'ylim','zlim'});
             axlims = cat(1, axlims{:});
@@ -462,6 +469,9 @@ switch Opt.method
 
             
             sd = get(Fp, 'StripData');
+            if ~iscell(sd)
+                sd = {sd};
+            end
             xyz = cellfun(@(v,s) double(v(:,s(1:end-1))), vd, sd, 'uni', 0);
             idx = zeros(np,1);
             
