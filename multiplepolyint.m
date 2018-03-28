@@ -87,12 +87,17 @@ if ~all(cellfun(@isvector, x)) || ~all(cellfun(@isvector, y))
 end
 
 if isempty(Opt.method)
-    if verLessThan('matlab', '2017b')
-        Opt.method = 'polybool';
+    if verLessThan('matlab', '9.3.0') % 2017b
+        if Opt.fast
+            Opt.method = 'gpcmex';
+        else
+            Opt.method = 'polybool';
+        end
     else
         Opt.method = 'polyshape';
     end
 end 
+validatestring(Opt.method, {'gpcmex', 'polybool', 'polyshape'});
     
 x = x(:);
 y = y(:);
@@ -100,7 +105,7 @@ y = y(:);
 % If the fast flag is on, we need access to two functions hidden in a
 % private directory of the mapping toolbox.
 
-if Opt.fast
+if strcmp(Opt.method, 'gpcmex')
     
     msg = ['Could not find copies of vectorsToGPC.m (%s) and/or ', ...
            'mex function gpcmex (%s).  Please verify these paths ', ...
@@ -144,166 +149,267 @@ end
 % Find intersections
 %------------------------------
 
-if ~Opt.fast % The original way, using polybool
+switch Opt.method
+    case 'polybool' % The original way, using polybool
 
-    xnew = x(1);
-    ynew = y(1);
-    indices = {1};
+        xnew = x(1);
+        ynew = y(1);
+        indices = {1};
 
-    for ipoly = 2:length(x)
+        for ipoly = 2:length(x)
 
-        x1 = x{ipoly};
-        y1 = y{ipoly};
+            x1 = x{ipoly};
+            y1 = y{ipoly};
 
-        for icomp = 1:length(xnew)
+            for icomp = 1:length(xnew)
 
-            x2 = xnew{icomp};
-            y2 = ynew{icomp};
+                x2 = xnew{icomp};
+                y2 = ynew{icomp};
 
-            % Intersecting 
+                % Intersecting 
 
-            [xint{icomp}, yint{icomp}] = polybool('&', x1, y1, x2, y2);
+                [xint{icomp}, yint{icomp}] = polybool('&', x1, y1, x2, y2);
 
-            noint = isempty(xint{icomp});
+                noint = isempty(xint{icomp});
 
-            % Only in 2
+                % Only in 2
 
-            if noint
-                xxor{icomp} = x2;
-                yxor{icomp} = y2;
-            else
-                [xxor{icomp}, yxor{icomp}] = polybool('xor', x2, y2, xint{icomp}, yint{icomp});
+                if noint
+                    xxor{icomp} = x2;
+                    yxor{icomp} = y2;
+                else
+                    [xxor{icomp}, yxor{icomp}] = polybool('xor', x2, y2, xint{icomp}, yint{icomp});
+                end
+
+                noxor = isempty(xxor{icomp});
+
+
+                % Indices
+
+                if noint
+                    indint{icomp} = [];
+                else
+                    indint{icomp} = [indices{icomp} ipoly];
+                end
+
+                if noxor
+                    indxor{icomp} = [];
+                else
+                    indxor{icomp} = indices{icomp};
+                end
+
             end
 
-            noxor = isempty(xxor{icomp});
+            % Only in 1
 
-
-            % Indices
-
-            if noint
-                indint{icomp} = [];
+            [xallint, yallint] = polyjoin(xint, yint);
+            if isempty(xallint)
+                xout = x1;
+                yout = y1;
             else
-                indint{icomp} = [indices{icomp} ipoly];
+                [xout, yout] = polybool('xor', x1, y1, xallint, yallint);
             end
 
-            if noxor
-                indxor{icomp} = [];
+            if isempty(xout)
+                indout = [];
             else
-                indxor{icomp} = indices{icomp};
+                indout = ipoly;
             end
+
+            xtemp = [xint xxor {xout}];
+            ytemp = [yint yxor {yout}];
+            indtemp = [indint indxor {indout}];
+
+            isbad = cellfun(@(a,b,c) isempty(a) & isempty(b) & isempty(c), xtemp, ytemp, indtemp);
+            xnew = xtemp(~isbad);
+            ynew = ytemp(~isbad);
+            indices = indtemp(~isbad);
+        end
+
+    case 'gpcmex' % The riskier way, going straight to gpcmex
+    
+        % Convert all polygons to GPC-style structures
+
+        p = cell(length(x),1);
+        for ii = 1:length(x)
+            [xtmp, ytmp] = polysplit(x{ii},y{ii});
+            p{ii} = struct('x', xtmp, 'y', ytmp, 'ishole', num2cell(~ispolycw(xtmp, ytmp)));
+        end
+
+        % Start with first polygon
+
+        pnew = p(1);
+        indices = {1};
+
+        isemp = @(p) isempty([p.x]);
+
+        for ipoly = 2:length(x)
+
+            p1 = p{ipoly};
+            for icomp = 1:length(pnew)
+
+                p2 = pnew{icomp};
+
+                % Intersecting
+
+                pint{icomp} = gpcmex('int', p1, p2);
+                noint = isemp(pint{icomp});
+
+                % Only in 2
+
+                if noint
+                    pxor{icomp} = p2;
+                else
+                    pxor{icomp} = gpcmex('xor', p2, pint{icomp});
+                end
+
+                noxor = isemp(pxor{icomp});
+
+                % Indices
+
+                if noint
+                    indint{icomp} = [];
+                else
+                    indint{icomp} = [indices{icomp} ipoly];
+                end
+
+                if noxor
+                    indxor{icomp} = [];
+                else
+                    indxor{icomp} = indices{icomp};
+                end
+
+            end
+
+            % Only in 1
+
+            pallint = cat(1, pint{:});
+            if isemp(pallint)
+                pout = p1;
+            else
+                pout = gpcmex('xor', p1, pallint);
+            end
+
+            if isemp(pout)
+                indout = [];
+            else
+                indout = ipoly;
+            end
+
+            ptemp = [pint pxor {pout}];
+            indtemp = [indint indxor {indout}];
+
+            isbad = cellfun(@(a,b) isempty(a) & isempty(b), ptemp, indtemp);
+            pnew = ptemp(~isbad);
+            indices = indtemp(~isbad);
 
         end
 
-        % Only in 1
+        % Convert back to cell arrays
 
-        [xallint, yallint] = polyjoin(xint, yint);
-        if isempty(xallint)
-            xout = x1;
-            yout = y1;
-        else
-            [xout, yout] = polybool('xor', x1, y1, xallint, yallint);
-        end
-
-        if isempty(xout)
-            indout = [];
-        else
-            indout = ipoly;
-        end
-
-        xtemp = [xint xxor {xout}];
-        ytemp = [yint yxor {yout}];
-        indtemp = [indint indxor {indout}];
-
-        isbad = cellfun(@(a,b,c) isempty(a) & isempty(b) & isempty(c), xtemp, ytemp, indtemp);
-        xnew = xtemp(~isbad);
-        ynew = ytemp(~isbad);
-        indices = indtemp(~isbad);
-    end
-
-else % The riskier way, going straight to gpcmex
-    
-    % Convert all polygons to GPC-style structures
-    
-    p = cell(length(x),1);
-    for ii = 1:length(x)
-        [xtmp, ytmp] = polysplit(x{ii},y{ii});
-        p{ii} = struct('x', xtmp, 'y', ytmp, 'ishole', num2cell(~ispolycw(xtmp, ytmp)));
-    end
-    
-    % Start with first polygon
-    
-    pnew = p(1);
-    indices = {1};
-    
-    isemp = @(p) isempty([p.x]);
-    
-    for ipoly = 2:length(x)
+        [xnew, ynew] = cellfun(vectorsFromGPC, pnew, 'uni', 0);
+        xnew = xnew(:);
+        ynew = ynew(:);
+    case 'polyshape'
         
-        p1 = p{ipoly};
-        for icomp = 1:length(pnew)
-            
-            p2 = pnew{icomp};
-            
-            % Intersecting
-            
-            pint{icomp} = gpcmex('int', p1, p2);
-            noint = isemp(pint{icomp});
-            
-            % Only in 2
-            
-            if noint
-                pxor{icomp} = p2;
-            else
-                pxor{icomp} = gpcmex('xor', p2, pint{icomp});
+        % Convert all polygons to GPC-style structures
+        
+        W = warning('off'); % turn off duplicate vertices warning
+        try
+            p = polyshape;
+            for ii = length(x):-1:1
+                p(ii) = polyshape(x{ii}, y{ii});
+            end
+            warning(W);
+        catch ME
+            warning(W);
+            rethrow(ME);
+        end
+
+        % Start with first polygon
+
+        pnew = p(1);
+        indices = {1};
+
+        isemp = @(p) isempty([p.Vertices]);
+
+        pint = polyshape;
+        pxor = polyshape;
+        for ipoly = 2:length(x)
+
+            p1 = p(ipoly);
+            for icomp = 1:length(pnew)
+
+                p2 = pnew(icomp);
+
+                % Intersecting
+
+                pint(icomp) = intersect(p1, p2);
+                noint = isemp(pint(icomp));
+
+                % Only in 2
+
+                if noint
+                    pxor(icomp) = p2;
+                else
+                    pxor(icomp) = xor(p2, pint(icomp));
+                end
+
+                noxor = isemp(pxor(icomp));
+
+                % Indices
+
+                if noint
+                    indint{icomp} = [];
+                else
+                    indint{icomp} = [indices{icomp} ipoly];
+                end
+
+                if noxor
+                    indxor{icomp} = [];
+                else
+                    indxor{icomp} = indices{icomp};
+                end
+
             end
 
-            noxor = isemp(pxor{icomp});
+            % Only in 1
+
             
-            % Indices
-
-            if noint
-                indint{icomp} = [];
+            pallint = pint(1); 
+            for ii = 2:length(pint)
+                pallint = union(pallint, pint(ii));
+            end
+            if isemp(pallint)
+                pout = p1;
             else
-                indint{icomp} = [indices{icomp} ipoly];
+                pout = xor(p1, pallint);
             end
 
-            if noxor
-                indxor{icomp} = [];
+            if isemp(pout)
+                indout = [];
             else
-                indxor{icomp} = indices{icomp};
+                indout = ipoly;
             end
-           
+
+            ptemp = [pint pxor pout];
+            indtemp = [indint indxor {indout}];
+
+            isbad = cellfun(@(a,b) isempty(a.Vertices) & isempty(b), num2cell(ptemp), indtemp);
+            pnew = ptemp(~isbad);
+            indices = indtemp(~isbad);
+
         end
-        
-        % Only in 1
-        
-        pallint = cat(1, pint{:});
-        if isemp(pallint)
-            pout = p1;
-        else
-            pout = gpcmex('xor', p1, pallint);
+
+        % Convert back to cell arrays
+
+        [xnew, ynew] = deal(cell(length(pnew),1));
+        for ii = 1:length(pnew)
+            [xnew{ii}, ynew{ii}] = boundary(pnew(ii));
         end
-        
-        if isemp(pout)
-            indout = [];
-        else
-            indout = ipoly;
-        end
-        
-        ptemp = [pint pxor {pout}];
-        indtemp = [indint indxor {indout}];
-        
-        isbad = cellfun(@(a,b) isempty(a) & isempty(b), ptemp, indtemp);
-        pnew = ptemp(~isbad);
-        indices = indtemp(~isbad);
-        
-    end
-    
-    % Convert back to cell arrays
-    
-    [xnew, ynew] = cellfun(vectorsFromGPC, pnew, 'uni', 0);
-    xnew = xnew(:);
-    ynew = ynew(:);
+%         [xnew, ynew] = cellfun(vectorsFromGPC, pnew, 'uni', 0);
+%         xnew = xnew(:);
+%         ynew = ynew(:);
   
 end
     
