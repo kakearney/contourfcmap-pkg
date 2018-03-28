@@ -151,15 +151,16 @@ end
     
 % Check version and dependencies
 
+useps = false;
 if strcmp(Opt.method, 'calccontour')
     if verLessThan('matlab', '9.3.0') % R2017b
         vmap = ver('map');
         if isempty(vmap)
             error('The calccontour method requires either Matlab R2017b or later, or the Mapping Toolbox');
         end
-        cmethod = 'map';
     else
-        cmethod = 'polyshape';
+        useps = true;
+        W = warning('off', 'MATLAB:polyshape:repairedBySimplify');
     end
 end
 
@@ -366,6 +367,7 @@ if showcb
     hout.cbax = cbax;
     
 end
+drawnow
     
 %------------------------
 % Contour calculations
@@ -580,8 +582,15 @@ switch Opt.method
             xn = xv(isnan(z));
             yn = yv(isnan(z));
 
-            [xn,yn] = poly2cw(xn,yn);
-            [xn, yn] = polyjoin(xn, yn);
+            if useps
+                pn = polyshape(xn{1}, yn{1});
+                for ii = 2:length(xn)
+                    pn = union(pn, polyshape(xn{ii}, yn{ii}));
+                end
+            else
+                [xn,yn] = poly2cw(xn,yn);
+                [xn, yn] = polyjoin(xn, yn);
+            end
             
             % Calculate contours for now-filled dataset
             
@@ -605,19 +614,25 @@ switch Opt.method
         
         if nflag
             
-            [xc, yc] = removeoverlap(xc, yc, xwall, ywall, Opt.flag);
+            [xc, yc] = removeoverlap(xc, yc, xwall, ywall, useps);
             for ic = 1:length(xc)
-                [xc{ic}, yc{ic}] = polybool('-', xc{ic}, yc{ic}, xn, yn);
+                if useps
+                    pc = polyshape(xc{ic}, yc{ic});
+                    pc = subtract(pc, pn);
+                    [xc{ic}, yc{ic}] = boundary(pc);
+                else
+                    [xc{ic}, yc{ic}] = polybool('-', xc{ic}, yc{ic}, xn, yn);
+                end
             end
             isemp = cellfun(@isempty, xc);
             xc = xc(~isemp);
             yc = yc(~isemp);
             
-            [f,v,lev] = poly2faces(xc, yc, F, clev);
+            [f,v,lev] = poly2faces(xc, yc, F, clev, useps);
                 
         else
-            [xc, yc] = removeoverlap(xc, yc, xwall, ywall, Opt.flag);
-            [f,v,lev] = poly2faces(xc, yc, F, clev);
+            [xc, yc] = removeoverlap(xc, yc, xwall, ywall, useps);
+            [f,v,lev] = poly2faces(xc, yc, F, clev, useps);
         end
         np = length(f);
         
@@ -656,6 +671,10 @@ end
 
 if nargout > 0
     varargout{1} = hout;
+end
+
+if useps
+    warning(W);
 end
 
 %*********** Subfunctions ************************************************
@@ -719,30 +738,20 @@ end
 % and triangulate
 %--------------------
 
-function [xnew, ynew] = removeoverlap(xc, yc, xwall, ywall, flag)
+function [xnew, ynew] = removeoverlap(xc, yc, xwall, ywall, useps)
 
 % Eliminate any empty contours or duplicates
         
-[xwall, ywall] = poly2cw(xwall, ywall);
+if useps
+    pwall = polyshape(xwall,ywall); % will automatically make external
+    [xwall, ywall] = boundary(pwall);
+else
+    [xwall, ywall] = poly2cw(xwall, ywall);
+end
 
 xc = [xwall; xc(:)];
 yc = [ywall; yc(:)];
 isemp = cellfun(@isempty, xc);
-
-% for ii = 1:length(xc)
-%     for jj = 1:length(xc)
-%         iseq(ii,jj) = isequal(xc{ii},xc{jj}) & isequal(yc{ii},yc{jj});
-%     end
-% end
-% [~,iunq] = unique(iseq, 'rows');
-% 
-% iseq = cellfun(@isequal, xc, xc') & cellfun(@isequal, yc, yc');
-% 
-% xunq = unique(xc);
-% yunq = unique(yc);
-% [~,ix] = ismember(xc, xunq);
-% [~,iy] = ismember(yc, yunq);
-
 
 xc = xc(~isemp);
 yc = yc(~isemp);
@@ -752,15 +761,25 @@ yc = yc(~isemp);
 [xnew, ynew] = multiplepolyint(xc,yc);
 
 
-function [f,v,lev] = poly2faces(xnew, ynew, F, clev)
+function [f,v,lev] = poly2faces(xnew, ynew, F, clev, useps)
 
 np = length(xnew);
 
 % Triangulate
 
 [f,v] = deal(cell(np,1));
-for ip = 1:np
-    [f{ip},v{ip}] = poly2fv(xnew{ip}, ynew{ip});
+if useps
+    for ip = 1:np
+        p = polyshape(xnew{ip}, ynew{ip});
+        T = triangulation(p);
+        f{ip} = T.ConnectivityList;
+        v{ip} = T.Points;
+    end
+else
+    
+    for ip = 1:np
+        [f{ip},v{ip}] = poly2fv(xnew{ip}, ynew{ip});
+    end
 end
 isemp = cellfun('isempty', f);
 f = f(~isemp);
