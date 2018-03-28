@@ -3,7 +3,6 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, varargin)
 %
 % [xnew, ynew, indices] = multiplepolyint(x, y)
 % [xnew, ynew, indices] = multiplepolyint(x, y, p1, v1, ...)
-% [xnew, ynew, indices] = multiplepolyint(x, y, fastflag)
 %
 % Determines the regions where polygons overlap, distinguishing between
 % each set of overlaps.
@@ -16,15 +15,14 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, varargin)
 %
 % Optional input parameters (passed as parameter/value pairs)
 %
-%   fast:       logical scalar, indicating whether to use fast method
-%               (true) or not (false).  Default is false.  The fast method
-%               basically skips over polybool and uses gpcmex directly;
-%               because it accesses private functions in the Mapping
-%               Toolbox, it may be more fragile than the default method.
-%
-%               Note: Can also be passed as a third input, as shown in the
-%               third syntax above.  This option maintains
-%               back-compatibility with older versions of this function.
+%   method:     method to use for polygon boolean operations:
+%               'polybool': use polybool function, default for pre-2017b
+%                   (correponds to older fast = false option)
+%               'gpcmex': call gpcmex directly.  Faster than polybool
+%                   option in some older versions of Matlab (corresponds to
+%                   older fast = true option)
+%               'polyshape': use polyshape object methods, default for
+%                   R2017b+
 %
 %   v2gpcpath:  path to your local copy of vectorsToGPC.m.  The default is 
 %               [matlabroot]/toolbox/map/map/private/vectorsToGPC.m, where
@@ -42,6 +40,16 @@ function [xnew, ynew, indices] = multiplepolyint(x, y, varargin)
 %               is [matlabroot]/toolbox/map/map/private/vectorsFromGPC.m,
 %               where [matlabroot] is the directory where the MATLAB
 %               software is installed.   
+%
+%   fast:       This is a mostly-deprecated option.  If no method is
+%               specified and Matlab detects pre-2017b is running, this
+%               logical scalar will switch between the polybool (false) and
+%               gpcmex (true) methods.
+%
+%               Note: Can also be passed via the older syntax:
+%                 [xnew,ynew,ind] = multiplepolyint(x,y,fastflag)
+%               This option maintains back-compatibility with older
+%               versions of this function. 
 %
 % Output variables:
 %
