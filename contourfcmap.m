@@ -149,6 +149,20 @@ else
     
 end
     
+% Check version and dependencies
+
+if strcmp(Opt.method, 'calccontour')
+    if verLessThan('matlab', '9.3.0') % R2017b
+        vmap = ver('map');
+        if isempty(vmap)
+            error('The calccontour method requires either Matlab R2017b or later, or the Mapping Toolbox');
+        end
+        cmethod = 'map';
+    else
+        cmethod = 'polyshape';
+    end
+end
+
 % Check clev
 
 if ~isvector(clev)
@@ -506,10 +520,6 @@ switch Opt.method
         
     case 'calccontour'
         
-        if isempty(ver('map'))
-            error('The calccontour method requires the Mapping Toolbox');
-        end
-        
         % Get contour lines
 
         if isvector(x)
@@ -520,9 +530,6 @@ switch Opt.method
         end
         
         % Calculate contour lines
-        
-%         [x,y] = ndgrid(x,y);
-%         tri = delaunay(x(:),y(:));
         
         if irrflag
             [c, htmp] = contour(x,y,z,clev);
@@ -572,32 +579,9 @@ switch Opt.method
             
             xn = xv(isnan(z));
             yn = yv(isnan(z));
-            
-%             for ir = 1:nr
-%                 for ic = 1:nc
-%                     
-%                     ii = min(max([0 1 0 -1 0] + ir, 1), nr);
-%                     jj = min(max([1 0 -1 0 1] + ic, 1), nc);
-%                     idx = sub2ind([nr nc], ii, jj);
-% 
-%                     xneighbor{ir,ic} = (xg(idx) - xg(ir,ic))./2 + xg(ir,ic);
-%                     yneighbor{ir,ic} = (yg(idx) - yg(ir,ic))./2 + yg(ir,ic);
-% 
-%                 end
-%             end            
-%             xn = xneighbor(isnan(z));
-%             yn = yneighbor(isnan(z));
 
             [xn,yn] = poly2cw(xn,yn);
-%             [xn, yn] = mergefaces(xn, yn);
-            
             [xn, yn] = polyjoin(xn, yn);
-%             xyn = unique([xn yn], 'rows');
-%             xyn = xyn(~isnan(xyn(:,1)),:);
-            
-            
-            
-%             [xn, yn] = poly2cw(xn, yn);
             
             % Calculate contours for now-filled dataset
             
@@ -616,128 +600,6 @@ switch Opt.method
 
         S = extendtowall(S,xwall,ywall);
         [xc,yc] = poly2cw({S.X}, {S.Y});
-
-      
-%         if nflag
-%             Sf = extendtowall(Sf, xwall, ywall);
-%             Sn = extendtowall(Sn, xwall, ywall);
-%             
-%             [xc,yc] = poly2cw({Sf.X}, {Sf.Y});
-%             [xn,yn] = poly2cw({Sn.X}, {Sn.Y});
-% 
-%             
-%         else
-%             S = extendtowall(S,xwall,ywall);
-%             [xc,yc] = poly2cw({S.X}, {S.Y});
-%         end
-            
-%         cellfun(@(x,y) plot(x, y), xc, yc);
-
-        
-%         if nflag
-%             
-%             % Trying to extend the lines properly when they hit NaNs rather
-%             % than walls is a pain. I think this interpolation hack should
-%             % do it for me.
-%             
-%             isn = isnan(z);
-%             if irrflag
-%                 [zi, A] = fillnan(z, {x,y});
-%             else
-%                 [zi, A] = fillnan(z', {x, y});
-%                 zi = zi';
-%             end
-%             
-%             if irrflag
-%                 [c, htmp] = contour(x,y,zi,clev);
-%                 S = contourcs(c, 'cmat');
-%                 delete(htmp);
-%                 [c, htmp] = contour(x,y,double(isnan(z)), [0 0]);
-%                 Sn = contourcs(c, 'cmat');
-%                 delete(htmp);
-%             else
-%                 S  = contourcs(x, y, zi, clev);
-%                 Sn = contourcs(x, y, double(isnan(z)), [0 0]);
-%             end
-%             
-%             S = cat(1, S, Sn);
-%             nnan = length(Sn);
-%         else
-%             if irrflag
-%                 [c, htmp] = contour(x,y,z,clev);
-%                 S = contourcs(c, 'cmat');
-%                 delete(htmp);
-%             else
-%                 S = contourcs(x,y,z,clev);
-%             end
-%             nnan = 0;
-%         end
-
-%         % For the lines that hit the boundaries, figure out if corners need
-%         % to be included 
-% 
-%         isclosed = arrayfun(@(A) isequal([A.X(1) A.Y(1)], [A.X(end) A.Y(end)]), S);
-% 
-%         xlim = minmax(x);
-%         ylim = minmax(y);
-% 
-%         xcorner = xlim([1 2 2 1 1]);
-%         ycorner = ylim([2 2 1 1 2]);
-% 
-%         for ii = find(~isclosed)'
-% 
-%             % Which wall is each point on?
-% 
-%             xtmp = S(ii).X([1 end]);
-%             ytmp = S(ii).Y([1 end]);
-% 
-%             wall = zeros(1,2);
-%             wall(xtmp == xlim(1)) = 1; % left
-%             wall(ytmp == ylim(2)) = 2; % top
-%             wall(xtmp == xlim(2)) = 3; % right
-%             wall(ytmp == ylim(1)) = 4; % bottom
-% 
-%             if wall(1) == wall(2) % Same wall, just connect
-%                 S(ii).X = [S(ii).X S(ii).X(1)];
-%                 S(ii).Y = [S(ii).Y S(ii).Y(1)];
-%             else
-%                 tbl = {...
-%                     [1 2]   1
-%                     [2 1]   1
-%                     [1 3]   [2 1]
-%                     [3 1]   [1 2]
-%                     [1 4]   4
-%                     [4 1]   4
-%                     [2 3]   2
-%                     [3 2]   2
-%                     [2 4]   [3 2]
-%                     [4 2]   [2 3]
-%                     [3 4]   3
-%                     [4 3]   3};
-% 
-% 
-%                 [tf, loc] = ismember(wall, cat(1, tbl{:,1}), 'rows');
-%                 S(ii).X = [S(ii).X xcorner(tbl{loc,2}) S(ii).X(1)];
-%                 S(ii).Y = [S(ii).Y ycorner(tbl{loc,2}) S(ii).Y(1)];
-% 
-%             end
-%         end
-        
-        % Eliminate the overlap with NaN-polygons (otherwise we end up with
-        % extra lines cutting through these regions)
-        
-%         [xc,yc] = poly2cw({S.X}, {S.Y});
-%         
-%         if nflag
-%             [xn, yn] = polyjoin(xc(end-nnan-1:end), yc(end-nnan-1:end));
-%             for ii = 1:(length(S)-nnan)
-%                 [xc{ii}, yc{ii}] = polybool('-', xc{ii}, yc{ii}, xn, yn);
-%             end
-%         end
-        
-%         [xc, yc] = polyjoin(xc, yc);
-%         [xc, yc] = poly2cw(xc, yc);
-%         [xc, yc] = polysplit(xc, yc);
         
         % Remove overlap and triangulate
         
@@ -752,53 +614,7 @@ switch Opt.method
             yc = yc(~isemp);
             
             [f,v,lev] = poly2faces(xc, yc, F, clev);
-            
-            % Create a single polygon holding NaN-masked region
-            
-%             [xn, yn] = removeoverlap(xn, yn, xwall, ywall, Opt.flag);
-%             [fn,vn,levn] = poly2faces(xn, yn, Fn, [-0.5 0.5 1.5]);
-%             fn = fn(levn == 3);
-%             vn = vn(levn == 3);
-%             
-%             for in = 1:length(fn)
-%                 xtmp = vn{in}(:,1);
-%                 ytmp = vn{in}(:,2);
-%                 xtmp = num2cell(xtmp([fn{in} fn{in}(:,1)]),2);
-%                 ytmp = num2cell(ytmp([fn{in} fn{in}(:,1)]),2);
-%                 [xtmp,ytmp] = polyjoin(xtmp,ytmp);
-%                 [xtmp,ytmp] = poly2cw(xtmp,ytmp);
-%                 if in == 1
-%                     xn = xtmp;
-%                     yn = ytmp;
-%                 else
-%                     [xn,yn] = polybool('+', xn, yn, xtmp, ytmp);
-%                 end
-%             end
-%             
-%             % Remove overlap from main contours
-%             
-%             [xc, yc] = removeoverlap(xc, yc, xwall, ywall, Opt.flag);
-%             
-%             % Subtract NaN-region from main contour polygons
-%             
-%             for ic = 1:length(xc)
-%                 [xc{ic},yc{ic}] = polybool('-', xc{ic},yc{ic}, xn, yn);
-%             end
-%             
-%             % Triangulate
-%             
-%             [f,v,lev] = poly2faces(xc, yc, F, clev);
-            
-% %             for ic = 1:length(xc)
-% %                 [xc{ic},yc{ic}] = polybool('-', xc{ic},yc{ic}, xn, yn);
-% %             end
-%             
-%             [f,v,lev] = poly2faces(xc, yc, xwall, ywall, Opt.flag, F, clev);
-%             for ic = 1:length(f)
-%                 
-%             end
-           
-           
+                
         else
             [xc, yc] = removeoverlap(xc, yc, xwall, ywall, Opt.flag);
             [f,v,lev] = poly2faces(xc, yc, F, clev);
@@ -806,58 +622,9 @@ switch Opt.method
         np = length(f);
         
         
-%         % Triangulate patches, eliminating overlap
-%         
-%         
-%         
-%         xc = [xc(:); xwall];
-%         yc = [yc(:); ywall];
-%         isemp = cellfun(@isempty, xc);
-%         xc = xc(~isemp);
-%         yc = yc(~isemp);
-% 
-%         [xnew, ynew] = multiplepolyint(xc,yc,Opt.flag);
-%         
-%         np = length(xnew);
-% 
-%         [f,v] = deal(cell(np,1));
-%         for ip = 1:np
-%             [f{ip},v{ip}] = poly2fv(xnew{ip}, ynew{ip});
-%         end
-%         isemp = cellfun('isempty', f);
-%         f = f(~isemp);
-%         v = v(~isemp);
-%         np = length(f);
-%         
-%         % There's probably a more elegant way to figure out which color
-%         % goes where, but this works for now 
-%         
-%         if irrflag
-%             F = scatteredInterpolant(x(:), y(:), z(:));
-%         else
-%             F = griddedInterpolant({x,y},z');
-%         end
-%         
-%         lev = zeros(np,1);
-%         for ii = 1:np
-%             vx = v{ii}(:,1);
-%             vy = v{ii}(:,2);
-%             fx = mean(vx(f{ii}),2);
-%             fy = mean(vy(f{ii}),2);
-%                
-%             tmp = F(fx,fy);
-% %             tmp = interp2(x,y,z,fx,fy);
-%             [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
-%             if ~any(ntmp)
-%                 lev(ii) = length(clev)+2;
-%             else
-%                 [~,lev(ii)] = max(ntmp);
-%             end
-%         end
-            
-        cmap2 = [Opt.lo; cmap; Opt.hi; 1 1 1];
-
         % Plot contour lines and patches
+
+        cmap2 = [Opt.lo; cmap; Opt.hi; 1 1 1];
 
         hout.p = gobjects(np,1);
         hout.l = gobjects(np,1);
@@ -866,9 +633,7 @@ switch Opt.method
         for ip = 1:np
             hout.p(ip) = patch('faces', f{ip}, 'vertices', v{ip}, 'facecolor', cmap2(lev(ip),:), 'edgecolor', 'none');
         end
-%         for il = 1:length(xnew)
-%             hout.l(il) = line(xnew{il}, ynew{il}, 'color', 'k');
-%         end    
+        [hout.c, hout.l] = contour(x,y,z,clev,'k'); 
         
         % A few axes properties changes similar to those made by contourf
         
@@ -984,7 +749,7 @@ yc = yc(~isemp);
 
 % Calculate overlap
 
-[xnew, ynew] = multiplepolyint(xc,yc,flag);
+[xnew, ynew] = multiplepolyint(xc,yc);
 
 
 function [f,v,lev] = poly2faces(xnew, ynew, F, clev)
