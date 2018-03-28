@@ -73,6 +73,7 @@ else
     p.addParameter('v2gpcpath',  '',    @(x) validateattributes(x, {'char'}, {}));
     p.addParameter('gpcmexpath', '',    @(x) validateattributes(x, {'char'}, {}));
     p.addParameter('vfgpcpath',  '',    @(x) validateattributes(x, {'char'}, {}));
+    p.addParameter('method', '', @(x) validateattributes(x, {'char'}, {}));
     p.parse(varargin{:});
 
     Opt = p.Results;
@@ -84,6 +85,14 @@ end
 if ~all(cellfun(@isvector, x)) || ~all(cellfun(@isvector, y))
     error('Contents of x and y must be vectors');
 end
+
+if isempty(Opt.method)
+    if verLessThan('matlab', '2017b')
+        Opt.method = 'polybool';
+    else
+        Opt.method = 'polyshape';
+    end
+end 
     
 x = x(:);
 y = y(:);
