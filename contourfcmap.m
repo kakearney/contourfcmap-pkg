@@ -74,33 +74,23 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 %                               always the case with contourf-generated
 %                               contour objects.
 %
-%   flag:       logical flag indicating whether to use the fast version of
-%               multiplepolyint.m (only applicable if method is
-%               'calccontour').  In plots with a large number of contour
-%               lines, this significantly speeds up the calculation.
-%               However, it works by directly calling a private mex
-%               function in the Mapping Toolbox, so it might be a bit less
-%               stable than the slower version, and may break in future
-%               releases. Default is true.
-%
 % Output variables:
 %
 %   h:          1 x 1 structure, with the following fields (some may not be
 %               present, depending on input options)
 %
-%               c:      contour matrix for filled contour plot ('recolor'
-%                       method only)
+%               c:      contour matrix for contour lines
 %
-%               h:      handle to contourgroup or contour object ('recolor'
-%                       method only)
+%               h:      handle to contourgroup or contour object (for
+%                       'recolor' method, contour faces indicate color; for
+%                       'calccontour' method, contour faces are left
+%                       uncolored).
 %
 %               p:      handles to patch objects (the filled contour
 %                       regions) ('calccontour' method only)
-%               
-%               l:      handles to line objects (the contour lines)
-%                       ('calccontour' method only) 
 %
-%               cbax:   handle to axis of colorbar
+%               cb:     structure of colorbar-related handles (see
+%                       pcolorbar.m)
 %
 % Example:
 %
