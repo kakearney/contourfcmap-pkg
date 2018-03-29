@@ -288,21 +288,11 @@ end
 % recoloring
 
 if showcb
-    if Opt.evencb
-        clevcbar = linspace(0,1,length(clev));
-    else
-        clevcbar = reshape(clev,1,[]);
-    end
-        
-    height = 0.1 * (max(clevcbar) - min(clevcbar));
-    y1 = [clevcbar(1)-height; clevcbar(1); clevcbar(1); clevcbar(1)-height; clevcbar(1)-height]; 
-    y2 = [clevcbar(end); clevcbar(end)+height; clevcbar(end)+height; clevcbar(end); clevcbar(end)];
-
-    yp = [y1 [clevcbar(1:end-1); clevcbar(2:end); clevcbar(2:end); clevcbar(1:end-1); clevcbar(1:end-1)] y2];
-    xp = [0;0;1;1;0] * ones(1,nlev+1);
-    cp = [Opt.lo; cmap; Opt.hi];   
-    cp = permute(cp, [3 1 2]);
-
+    
+    dy = 0.05 .* (max(clev) - min(clev));
+    clevcbar = [clev(1)-dy; clev(:); clev(end)+dy];
+    cmapcbar = [Opt.lo; cmap; Opt.hi];
+    
     if ~ischar(Opt.cbarloc)
         cbarcoord = Opt.cbarloc;
         hascbcoord = true;
@@ -321,53 +311,15 @@ if showcb
             isvert = false;
         end
     end
-
-    if ~isvert
-        tmp = xp;
-        xp = yp;
-        yp = tmp;
-    end
-
     
-    cbax = colorbar(Opt.cbarloc);
-    drawnow;
-    axpos = get(ax, 'position');
-    cbpos = get(cbax, 'position');
-
-    delete(cbax);
-    drawnow; 
-    set(ax, 'position', axpos);
-    cbax = axes('position', cbpos);
-    set(cbax, 'userdata', 'contourfcolorbar');
-
-    patch(xp,yp,cp);
-    if isvert
-        set(cbax, 'ytick', clevcbar, 'ylim', minmax(yp), 'xlim', [0 1], 'xtick', []);
-        if Opt.evencb
-            set(cbax, 'yticklabel', strtrim(cellstr(num2str(clev'))));
-        end
-    else
-        set(cbax, 'xtick', clevcbar, 'xlim', minmax(xp), 'ylim', [0 1], 'ytick', []);
-        if Opt.evencb
-            set(cbax, 'xticklabel', strtrim(cellstr(num2str(clev'))));
-        end
-    end
+    hout.cb = pcolorbar(clevcbar, cmapcbar, 'even', Opt.evencb, 'location', Opt.cbarloc);
     
-    switch Opt.cbarloc
-        case {'east', 'westoutside'}
-            set(cbax, 'yaxislocation', 'left');
-        case {'eastoutside', 'west'}
-            set(cbax, 'yaxislocation', 'right');
-        case {'north', 'southoutside'}
-            set(cbax, 'xaxislocation', 'bottom');
-        case {'northoutside', 'south'}
-            set(cbax, 'xaxislocation', 'top');
-    end
-    
-    hout.cbax = cbax;
+    tk = get(hout.cb.ax, 'yticklabel');
+    [tk{[1 end]}] = deal(' ');
+    set(hout.cb.ax, 'yticklabel', tk);
     
 end
-drawnow
+drawnow;
     
 %------------------------
 % Contour calculations
@@ -577,7 +529,7 @@ switch Opt.method
             
             % Calculate the polygons that surround all NaNs
             
-            [xv,yv] = voronoigrid(x,y,xwall,ywall);
+            [xv,yv] = voronoigrid(x,y);
             
             xn = xv(isnan(z));
             yn = yv(isnan(z));
@@ -658,11 +610,11 @@ switch Opt.method
 end
 
 if showcb && hascbcoord
-    set(cbax, 'position', cbarcoord);
+    set(h.cb.cb, 'position', cbarcoord);
 end
 
 if showcb
-    uistack(cbax, 'top'); % Has to be done after plotting, but resets color in R2014b-recolor... aaargh!
+    uistack(hout.cb.ax, 'top'); % Has to be done after plotting, but resets color in R2014b-recolor... aaargh!
 end
 
 %------------------------
@@ -844,7 +796,7 @@ isdup = ismember([xseg yseg], [fliplr(xseg) fliplr(yseg)], 'rows');
 % each point
 %--------------------
 
-function [xv,yv] = voronoigrid(x,y, xwall, ywall)
+function [xv,yv] = voronoigrid(x,y)
 
 if isvector(x) && isvector(y)
     [xg, yg] = meshgrid(x,y);
@@ -869,6 +821,5 @@ for ir = 1:nr
         yv{ir,ic} = ymid(idx);
     end
 end
-
 
 
