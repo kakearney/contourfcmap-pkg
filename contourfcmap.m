@@ -1,4 +1,4 @@
-function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,evencb)
+function varargout = contourfcmap(x,y,z,clev,cmap,varargin) % lo,hi,cbarloc,evencb)
 %CONTOURFCMAP Filled contour plot with specified colors
 %
 % h = contourfcmap(x,y,z,clev,cmap,lo,hi,cbarloc)
@@ -109,22 +109,38 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin);% lo,hi,cbarloc,even
 % New syntax uses parameter/value options, but we'll still accept the old
 % syntax 
 
-Opt.lo = [1 1 1];
-Opt.hi = [1 1 1];
-Opt.cbarloc = [];
-Opt.evencb = false;
-Opt.method = 'recolor';
-Opt.flag = true;
-
 isc = cellfun(@ischar, varargin);
 if ~mod(length(varargin),2) && all(isc(1:2:end))
     
+    if verLessThan('matlab', '8.2.0') % R2013b
+        pvfun = 'addParamValue';
+    else
+        pvfun = 'addParameter';
+    end
+    
     % New syntax
     
-    Opt = parsepv(Opt, varargin);
+    p = inputParser;
+    p.(pvfun)('lo',      [1 1 1],   @(x) validateattributes(x, {'numeric'}, {'size', [1 3], '<=', 1, '>=', 0}));
+    p.(pvfun)('hi',      [1 1 1],   @(x) validateattributes(x, {'numeric'}, {'size', [1 3], '<=', 1, '>=', 0}));
+    p.(pvfun)('cbarloc', []);
+    p.(pvfun)('evencb',  false,     @(x) validateattributes(x, {'logical'}, {'scalar'}));
+    p.(pvfun)('method',  'recolor', @(x) validateattributes(x, {'char','string'}, {'scalartext'}));
+    
+    p.parse(varargin{:});
+    Opt = p.Results;
+    
+%     Opt = parsepv(Opt, varargin);
     
 else
     % Old syntax
+    
+    Opt.lo = [1 1 1];
+    Opt.hi = [1 1 1];
+    Opt.cbarloc = [];
+    Opt.evencb = false;
+    Opt.method = 'recolor';
+    Opt.flag = true;
     
     if verLessThan('matlab', 'R2011b')
         error(nargchk(5,9,nargin));
@@ -136,7 +152,6 @@ else
     for ii = 1:length(varargin)
         Opt.(fld{ii}) = varargin{ii};
     end
-    
 end
     
 % Check version and dependencies
