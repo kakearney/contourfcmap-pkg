@@ -91,7 +91,7 @@ pos = get(h.cb, 'position');
 % Calculate y-values for each color interval, and labels to go along
 
 if Opt.even
-    tk = linspace(0,1,nblock+1);
+    tk = linspace(0,1,nblock+1)';
     y1 = tk(1:end-1);
     y2 = tk(2:end);
 else
