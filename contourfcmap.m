@@ -599,13 +599,12 @@ switch Opt.method
         cmap2 = [Opt.lo; cmap; Opt.hi; 1 1 1];
 
         hout.p = gobjects(np,1);
-        hout.l = gobjects(np,1);
         
         hold(ax, 'on');
         for ip = 1:np
             hout.p(ip) = patch('faces', f{ip}, 'vertices', v{ip}, 'facecolor', cmap2(lev(ip),:), 'edgecolor', 'none');
         end
-        [hout.c, hout.l] = contour(x,y,z,clev,'k'); 
+        [hout.c, hout.h] = contour(x,y,z,clev,'k'); 
         
         % A few axes properties changes similar to those made by contourf
         
