@@ -17,6 +17,7 @@ This function creates a shaded contour map, similar to that created by the conto
             
 - Getting started        
 - Syntax        
+- Description        
 - Examples        
 - The algorithms behind contourfcmap        
 - Contributions
@@ -45,11 +46,16 @@ The following folders need to be added to your Matlab Search path (via `addpath`
 
 ```matlab
 contourfcmap-pkg/FEX-function_handle
+contourfcmap-pkg/arclength
 contourfcmap-pkg/contourcs
 contourfcmap-pkg/contourfcmap
+contourfcmap-pkg/distance2curve
 contourfcmap-pkg/fillnan
+contourfcmap-pkg/interparc
+contourfcmap-pkg/minmax
 contourfcmap-pkg/multiplepolyint
 contourfcmap-pkg/parsepv
+contourfcmap-pkg/pcolorbar
 ```
 
 
@@ -58,61 +64,43 @@ contourfcmap-pkg/parsepv
 
 
 
-```
-h = contourfcmap(x,y,z,clev,cmap,lo,hi,cbarloc)
-h = contourfcmap(x,y,z,clev,cmap)
-h = contourfcmap(x,y,z,clev,cmap,lo)
-h = contourfcmap(x,y,z,clev,cmap,lo,hi)
-h = contourfcmap(x,y,z,clev,cmap, param1, val1, ...)
+```matlab
+contourfcmap(x,y,z,clev,cmap)
+contourfcmap(x,y,z,clev,cmap, Name, Value)
+h = contourfcmap(...)
 ```
 
 
-Input variables
+
+## Description
 
 
-
-  - `x`:          x-coordinates of grid, following size restrictions of surf               command
-  - `y`:          y-coordinates of grid, following size restrictions of surf               command
-  - `z`:          array of data to be contoured, following size restritions               of surf command
-  - `clev`:       vector of length n, contour levels, must be monotonically               increasing
-  - `cmap`:       n-1 x 3 colormap array, specifying colors used to shade               each contour interval
-
-Optional input variables (passed as parameter/value pairs)
+`contourfcmap(x,y,z,clev,cmap)` plots a filled contour plot of the matrix `z` with coordinates `x` and `y`.  `z` must be at least a 2x2 matrix; `x` and `y` can either be matrices defining the grid for `z`, or vectors that correspond to the column and row coordinates, respectively. `clev` is an n x 1 vector defining the contour line levels, and `cmap` is an n-1 x 1 colormap array defining the colors to be used between each of the contour levels.
 
 
-
-  - `lo`:         1 x 3 colormap array, specifying color used for all data               falling below the first contour level.  If not included or               empty, default will be to white.
-
-
-  - `hi`:         1 x 3 colormap array, specifying color used for all data               falling above the last contour level.  If not included or               empty, default will be to white.
+`contourfcmap(x,y,z,clev,cmap, 'lo', lo)` indicates the color value `lo` (a 1 x 3 RGB array) to be used for any region with data lower than the first contour level. Default is white.
 
 
-  - `cbarloc`:    string specifying colorbar location (see colorbar),  or a               1 x 4 position vector for colorbar.  If not included, no               colorbar will be created.  Note that the colorbar created               is not a colorbar object, but just an axis with plotted               patches; it is for labeling only and is not linked to the               "peer axis" in any way. Default is no colorbar.
+`contourfcmap(x,y,z,clev,cmap, 'hi', hi)` indicates the color value `hi` (a 1 x 3 RGB array) to be used for any region with data higher than the last contour level.  Default is white.
 
 
-  - `evencb`:     logical scalar.  If true, intervals on the colorbar will               be evenly spaced, regardless of value.  If false, ticks               will correspond to clev values. If not included or empty,               default is false.
+`contourfcmap(x,y,z,clev,cmap, 'method', method)` allows you to switch between the 'recolor' and 'calccontour' algorithms (see below for details).  Default is 'recolor' (though I now recommend 'calccontour' for R2017b or later).
 
 
-  - `method`:     string specifying calculation method.               'recolor' creates a contourf object, and                               then change the color properties of the                               underlying components. Note: In 2014b,                               recolor will not persist when saving to                               file via anything that uses print.m                               (including print, saveas, export_fig, etc).               'calccontour' creates new patch and line objects from                               scratch.  This method requires the Mapping                               Toolbox.  It can be beneficial if you want                               more consistency between output regardless                               of which version of Matlab is being run.                               It also properly fills regions falling                               below the lowest contour level and above                               the highest contour level, which isn't                               always the case with contourf-generated                               contour objects.
+`contourfcmap(x,y,z,clev,cmap, 'cbarloc', cbarloc)` adds a psuedo-colorbar using the colorbar location indicator `cbarloc`.  Default is no colorbar.
 
 
-  - `flag`:       logical flag indicating whether to use the fast version of               multiplepolyint.m (only applicable if method is               'calccontour').  In plots with a large number of contour               lines, this significantly speeds up the calculation.               However, it works by directly calling a private mex               function in the Mapping Toolbox, so it might be a bit less               stable than the slower version, and may break in future               releases. Default is true.
-
-Output variables:
+`contourfcmap(x,y,z,clev,cmap, 'evencb', evencb)` indicates whether to space the colors on the colorbar evenly (evencb = true) or to size them according to the clev values (evencb = false).  Default is false.
 
 
+`h = contourfcmap(...)` returns a structure `h` whose fields hold the colorbar axis handle structure (`h.cb`, see `pcolorbar.m` for details), contour object (`h.h`), contour matrix (`h.c`), and patch object (`h.p`).
 
-  - `h.c`: contour matrix for filled contour plot ('recolor'                       method only)
-  - `h.h`:      handle to contourgroup or contour object ('recolor'                       method only)
-  - `h.p`:      handles to patch objects (the filled contour                       regions) ('calccontour' method only)
-  - `h.l`:      handles to line objects (the contour lines)                       ('calccontour' method only)
-  - `h.cbax`:   handle to axis of colorbar
 
 
 ## Examples
 
 
-First we'll plot a contourf plot using the standard Matlab functions. Without labeling the contour lines, it's difficult to tell which values in the colorbar correspond to the color intervals in the contuorf plot.
+First we'll plot a contourf plot using the standard Matlab functions. Without labeling the contour lines, it's difficult to tell which values in the colorbar correspond to the color intervals in the contourf plot.
 
 
 
