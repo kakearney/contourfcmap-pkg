@@ -203,7 +203,7 @@ end
     
 % Colorbar location
 
-if nargin >= 8 && ~isempty(Opt.cbarloc)
+if ~isempty(Opt.cbarloc)
     pos = {'north', 'south', 'east', 'west', 'northoutside', 'southoutside', 'eastoutside', 'westoutside'};
     if ischar(Opt.cbarloc)
         if ~any(strcmp(lower(Opt.cbarloc), pos))
@@ -317,11 +317,18 @@ if showcb
         end
     end
     
+    
     hout.cb = pcolorbar(clevcbar, cmapcbar, 'even', Opt.evencb, 'location', Opt.cbarloc);
     
-    tk = get(hout.cb.ax, 'yticklabel');
-    [tk{[1 end]}] = deal(' ');
-    set(hout.cb.ax, 'yticklabel', tk);
+    if ismember(hout.cb.cb.Location, {'north', 'south', 'northoutside', 'southoutside'})
+        tk = get(hout.cb.ax, 'xticklabel');
+        [tk{[1 end]}] = deal(' ');
+        set(hout.cb.ax, 'xticklabel', tk);
+    else
+        tk = get(hout.cb.ax, 'yticklabel');
+        [tk{[1 end]}] = deal(' ');
+        set(hout.cb.ax, 'yticklabel', tk);
+    end
     
 end
 drawnow;
@@ -331,6 +338,7 @@ drawnow;
 %------------------------
 
 axes(ax);
+hold(ax, 'on');
 
 switch Opt.method
     case 'recolor'
@@ -727,9 +735,12 @@ np = length(xnew);
 if useps
     for ip = 1:np
         p = polyshape(xnew{ip}, ynew{ip});
-        T = triangulation(p);
-        f{ip} = T.ConnectivityList;
-        v{ip} = T.Points;
+        if isempty(p.Vertices)
+        else
+            T = triangulation(p);
+            f{ip} = T.ConnectivityList;
+            v{ip} = T.Points;
+        end
     end
 else
     
