@@ -130,6 +130,8 @@ if ~mod(length(varargin),2) && all(isc(1:2:end))
     p.parse(varargin{:});
     Opt = p.Results;
     
+    validatestring(Opt.method, {'recolor', 'calccontour'}, 'contourfcmap', 'method');
+    
 %     Opt = parsepv(Opt, varargin);
     
 else
@@ -573,7 +575,15 @@ switch Opt.method
         % Extend contours to wall
 
         S = extendtowall(S,xwall,ywall);
-        [xc,yc] = poly2cw({S.X}, {S.Y});
+        if useps
+            [xc,yc] = deal(cell(size(S)));
+            for is = 1:length(S)
+                pctmp = polyshape(S(is).X, S(is).Y);
+                [xc{is}, yc{is}] = boundary(pctmp);
+            end
+        else
+            [xc,yc] = poly2cw({S.X}, {S.Y});
+        end
         
         % Remove overlap and triangulate
         
