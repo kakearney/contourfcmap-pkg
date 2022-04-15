@@ -235,7 +235,7 @@ Contour data can also include NaNs.  Sometimes these represent a missing data po
 
 
 ```matlab
-z(z &lt; 0.2 &amp; z > 0) = NaN;
+z(z < 0.2 & z > 0) = NaN;
 z(1:3,1:3) = -15;
 z(end-3:end,end-3:end) = 15;
 z(25:30, 1:2) = -15;
@@ -255,7 +255,7 @@ Let's say we want to plot some contours, with specific colors between each inter
 % Discretize
 
 bin = discretize(z, clev);
-bin(z &lt; clev(1)) = 0;
+bin(z < clev(1)) = 0;
 bin(z > clev(end)) = length(clev)+1;
 
 % Colors
