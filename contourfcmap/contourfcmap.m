@@ -6,7 +6,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin) % lo,hi,cbarloc,even
 % h = contourfcmap(x,y,z,clev,cmap,lo)
 % h = contourfcmap(x,y,z,clev,cmap,lo,hi)
 % h = contourfcmap(x,y,z,clev,cmap, param1, val1, ...)
-% 
+%
 % This function creates a shaded contour map, similar to that created by
 % the contourf function.  However, the relationship between a contourf plot
 % and its colormap (i.e. exactly which color corresponds to each contour
@@ -18,31 +18,31 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin) % lo,hi,cbarloc,even
 % Input variables
 %
 %   x:          x-coordinates of grid, following size restrictions of surf
-%               command 
+%               command
 %
 %   y:          y-coordinates of grid, following size restrictions of surf
-%               command 
+%               command
 %
 %   z:          array of data to be contoured, following size restritions
-%               of surf command 
+%               of surf command
 %
 %   clev:       vector of length n, contour levels, must be monotonically
-%               increasing 
+%               increasing
 %
 %   cmap:       n-1 x 3 colormap array, specifying colors used to shade
-%               each contour interval 
+%               each contour interval
 %
 % Optional input variables (passed as parameter/value pairs)
 %
 %   lo:         1 x 3 colormap array, specifying color used for all data
 %               falling below the first contour level.  If not included or
-%               empty, default will be to white. 
+%               empty, default will be to white.
 %
 %   hi:         1 x 3 colormap array, specifying color used for all data
 %               falling above the last contour level.  If not included or
 %               empty, default will be to white.
 %
-%   cbarloc:    string specifying colorbar location (see colorbar),  or a 
+%   cbarloc:    string specifying colorbar location (see colorbar),  or a
 %               1 x 4 position vector for colorbar.  If not included, no
 %               colorbar will be created.  Note that the colorbar created
 %               is not a colorbar object, but just an axis with plotted
@@ -98,7 +98,7 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin) % lo,hi,cbarloc,even
 % z = peaks(100);
 % contourfcmap(x,y,z,[-5 -3 -2:.5:2 3 5],jet(12), ...
 %              [.8 .8 .8], [.2 .2 .2], 'eastoutside')
-% 
+%
 
 % Copyright 2010-2016 Kelly Kearney
 
@@ -107,55 +107,54 @@ function varargout = contourfcmap(x,y,z,clev,cmap,varargin) % lo,hi,cbarloc,even
 %------------------------
 
 % New syntax uses parameter/value options, but we'll still accept the old
-% syntax 
-
+% syntax
 isc = cellfun(@ischar, varargin);
 if ~mod(length(varargin),2) && all(isc(1:2:end))
-    
+
     if verLessThan('matlab', '8.2.0') % R2013b
         pvfun = 'addParamValue';
     else
         pvfun = 'addParameter';
     end
-    
+
     % New syntax
-    
+
     p = inputParser;
     p.(pvfun)('lo',      [1 1 1],   @(x) validateattributes(x, {'numeric'}, {'size', [1 3], '<=', 1, '>=', 0}));
     p.(pvfun)('hi',      [1 1 1],   @(x) validateattributes(x, {'numeric'}, {'size', [1 3], '<=', 1, '>=', 0}));
     p.(pvfun)('cbarloc', []);
     p.(pvfun)('evencb',  false,     @(x) validateattributes(x, {'logical'}, {'scalar'}));
     p.(pvfun)('method',  'recolor', @(x) validateattributes(x, {'char','string'}, {'scalartext'}));
-    
+
     p.parse(varargin{:});
     Opt = p.Results;
-    
+
     validatestring(Opt.method, {'recolor', 'calccontour'}, 'contourfcmap', 'method');
-    
+
 %     Opt = parsepv(Opt, varargin);
-    
+
 else
     % Old syntax
-    
+
     Opt.lo = [1 1 1];
     Opt.hi = [1 1 1];
     Opt.cbarloc = [];
     Opt.evencb = false;
     Opt.method = 'recolor';
     Opt.flag = true;
-    
+
     if verLessThan('matlab', 'R2011b')
         error(nargchk(5,9,nargin));
     else
         narginchk(5,9);
     end
-    
+
     fld = fieldnames(Opt);
     for ii = 1:length(varargin)
         Opt.(fld{ii}) = varargin{ii};
     end
 end
-    
+
 % Check version and dependencies
 
 useps = false;
@@ -177,7 +176,7 @@ if ~isvector(clev)
     error('clev must be a vector');
 end
 nlev = length(clev);
-clev = reshape(clev, 1, []); 
+clev = reshape(clev, 1, []);
 
 % Check cmap
 
@@ -202,7 +201,7 @@ end
 if ~isequal(size(Opt.hi),[1 3])
     error('Opt.hi must be 1 x 3 colormap array');
 end
-    
+
 % Colorbar location
 
 if ~isempty(Opt.cbarloc)
@@ -242,29 +241,29 @@ isvec = isvector(x) && ...
          length(y)==size(z,1)) || ...
         (length(x)==size(z,1) && ...
          length(y)==size(z,2)));
-    
+
 ismgrid = isequal(size(x),size(y),size(z)) && ...
           ~any(reshape(bsxfun(@minus, x, x(1,:)),[],1)) && ...
           ~any(reshape(bsxfun(@minus, y, y(:,1)),[],1));
 isngrid = isequal(size(x),size(y),size(z)) && ...
           ~any(reshape(bsxfun(@minus, x, x(:,1)),[],1)) && ...
           ~any(reshape(bsxfun(@minus, y, y(1,:)),[],1));
-      
+
 isigrid = isequal(size(x),size(y),size(z)) && ...
           ~ismgrid && ...
           ~isngrid;
-      
+
 if ~(isvec || ismgrid || isngrid || isigrid)
     htmp = contourf(x,y,z);
-    
+
     % If this works, it means I've found an input format I hadn't
     % considered in my code.  Might work, might not.  Email me if you hit
     % this.
-    
+
     warning('You''ve found an accepatable x/y/z format that I haven''t tested... may have unexpected results');
     delete(htmp);
 end
-       
+
 % Convert all rectilinear input format to vector x and y, with z rows
 % corresponding to y and columns to x.  Irregular grids will stay as they
 % are.
@@ -295,11 +294,11 @@ end
 % recoloring
 
 if showcb
-    
+
     dy = 0.05 .* (max(clev) - min(clev));
     clevcbar = [clev(1)-dy; clev(:); clev(end)+dy];
     cmapcbar = [Opt.lo; cmap; Opt.hi];
-    
+
     if ~ischar(Opt.cbarloc)
         cbarcoord = Opt.cbarloc;
         hascbcoord = true;
@@ -318,10 +317,10 @@ if showcb
             isvert = false;
         end
     end
-    
-    
-    hout.cb = pcolorbar(clevcbar, cmapcbar, 'even', Opt.evencb, 'location', Opt.cbarloc);
-    
+
+
+    hout.cb = pcolorbar(clevcbar, cmapcbar, 'even', Opt.evencb, 'location', Opt.cbarloc, 'lo', Opt.lo, 'hi', Opt.hi);
+
     if ismember(hout.cb.cb.Location, {'north', 'south', 'northoutside', 'southoutside'})
         tk = get(hout.cb.ax, 'xticklabel');
         [tk{[1 end]}] = deal(' ');
@@ -331,10 +330,10 @@ if showcb
         [tk{[1 end]}] = deal(' ');
         set(hout.cb.ax, 'yticklabel', tk);
     end
-    
+
 end
 drawnow;
-    
+
 %------------------------
 % Contour calculations
 %------------------------
@@ -345,8 +344,8 @@ hold(ax, 'on');
 switch Opt.method
     case 'recolor'
         if verLessThan('matlab', '8.4.0')
-            
-            [c,h] = contourf(x,y,z,clev);
+
+            [c,h] = contourf(x,y,z,clev, 'linestyle', 'none');
 
             hpatch = get(h, 'children');
 
@@ -375,12 +374,12 @@ switch Opt.method
                 else
                     ztmp = interp2(x,y,z,xy(:,1),xy(:,2));
                 end
-                
+
                 isn = false(size(cdata));
                 isn(idxtmp(isnan(ztmp))) = true;
-                
+
                 isbelow = isnan(cdata) & ~isn;
-                
+
             end
 
             level = get(h, 'LevelList');
@@ -408,25 +407,25 @@ switch Opt.method
                     set(hpatch(ip), 'facecolor', cmap(idx(ip),:));
                 end
             end
-            
+
             hout.h = h;
             hout.c = c;
-            
+
         else
-            
-            [c,h] = contourf(x,y,z,clev);
-            
+
+            [c,h] = contourf(x,y,z,clev, 'linestyle', 'none');
+
             drawnow;
             Fp = h.FacePrims;
             np = length(Fp);
-            
+
             % I can't seem to find the property that links each
             % TriangleStrip to a particular contour level (and hence the
             % appropriate color).  So I'm going to have to determine that
             % by checking the value in one triangle per strip.
-            
+
             vd = get(Fp, 'VertexData');
-            
+
             % Vertex data is sometimes scaled.  I'm not quite sure what
             % determines this.  My best bet so far is to just check to see
             % if the vd data is in the axis limits.  If not, assume it's
@@ -434,61 +433,61 @@ switch Opt.method
             % were between 0 and 1, but I've hit a few examples where
             % scaled values exceed that by a few thousandths... still not
             % very clear on what's going on here).
-            
+
             if ~iscell(vd)
                 vd = {vd};
             end
             lims = [min(cat(2, vd{:}), [], 2) max(cat(2, vd{:}), [], 2)];
             axlims = get(ax, {'xlim', 'ylim','zlim'});
             axlims = cat(1, axlims{:});
-            
+
             isin = bsxfun(@ge, lims, axlims(:,1)) & bsxfun(@le, lims, axlims(:,2));
 %             is01 = lims >= 0 & lims <= 1;
-            
+
             if ~all(isin(:))
 %                 if all(is01(:)) % Scaled
                 s = diff(axlims,1,2);
                 o = axlims(:,1);
-                vd = cellfun(@(v) bsxfun(@plus, bsxfun(@times, double(v), s), o), vd, 'uni', 0); 
+                vd = cellfun(@(v) bsxfun(@plus, bsxfun(@times, double(v), s), o), vd, 'uni', 0);
             end
 
-            
+
             sd = get(Fp, 'StripData');
             if ~iscell(sd)
                 sd = {sd};
             end
             xyz = cellfun(@(v,s) double(v(:,s(1:end-1))), vd, sd, 'uni', 0);
             idx = zeros(np,1);
-            
+
             if irrflag
 %                 error('Still figuring this one out for irregular grids');
                 F = scatteredInterpolant(x(:), y(:), z(:));
             else
                 F = griddedInterpolant({x,y},z');
             end
-               
+
             for ii = 1:np
                 tmp = F(xyz{ii}(1,:), xyz{ii}(2,:));
 %                 tmp = interp2(x,y,z,xyz{ii}(1,:), xyz{ii}(2,:));
                 [ntmp, bin] = histc(tmp, [-Inf clev Inf]);
                 [~,idx(ii)] = max(ntmp);
             end
-            
+
             cdata = [Opt.lo; cmap; Opt.hi] * 255;
             newcol = cdata(idx,:);
-            
+
             for ii = 1:np
                 Fp(ii).ColorData = uint8([newcol(ii,:) 255]');
             end
-            
+
             hout.h = h;
             hout.c = c;
-            
+
         end
-        
-        
+
+
     case 'calccontour'
-        
+
         % Get contour lines
 
         if isvector(x)
@@ -497,22 +496,22 @@ switch Opt.method
         if isvector(y)
             y = reshape(y, [], 1);
         end
-        
+
         % Calculate contour lines
-        
+
         if irrflag
             [c, htmp] = contour(x,y,z,clev);
             S = contourcs(c, 'cmat');
             delete(htmp);
-            
+
             F = scatteredInterpolant(x(:), y(:), z(:));
         else
             S = contourcs(x,y,z,clev);
             F = griddedInterpolant({x,y},z');
         end
-        
+
         % Coordinates for wall
-        
+
         if isvector(x)
             xlim = [min(x) max(x)];
             ylim = [min(y) max(y)];
@@ -522,15 +521,15 @@ switch Opt.method
             xwall = [x(end:-1:1,1)' x(2,:), x(2:end,end)', x(end,end-1:-1:1)];
             ywall = [y(end:-1:1,1)' y(2,:), y(2:end,end)', y(end,end-1:-1:1)];
         end
-        
+
         % If there are NaNs in the dataset, calculate contour lines
         % for the NaN regions and for the inpainted data
-        
+
         nflag = any(isnan(z(:)));
         if nflag
-            
+
             % Inpaint the NaN holes using nearest neighbor values
-            
+
             if irrflag
                 [zi, A] = fillnan(z, {x,y});
                 F = scatteredInterpolant(x(:), y(:), zi(:));
@@ -541,11 +540,11 @@ switch Opt.method
                 F = griddedInterpolant({x,y},zi');
                 Fn = griddedInterpolant({x,y},double(isnan(z')));
             end
-            
+
             % Calculate the polygons that surround all NaNs
-            
+
             [xv,yv] = voronoigrid(x,y);
-            
+
             xn = xv(isnan(z));
             yn = yv(isnan(z));
 
@@ -558,20 +557,20 @@ switch Opt.method
                 [xn,yn] = poly2cw(xn,yn);
                 [xn, yn] = polyjoin(xn, yn);
             end
-            
+
             % Calculate contours for now-filled dataset
-            
+
             if irrflag
                 [c, htmp] = contour(x,y,zi,clev);
                 S = contourcs(c, 'cmat');
-                delete(htmp);     
+                delete(htmp);
             else
                 S  = contourcs(x, y, zi, clev);
             end
-            
+
         end
-        
-       
+
+
         % Extend contours to wall
 
         S = extendtowall(S,xwall,ywall);
@@ -584,11 +583,11 @@ switch Opt.method
         else
             [xc,yc] = poly2cw({S.X}, {S.Y});
         end
-        
+
         % Remove overlap and triangulate
-        
+
         if nflag
-            
+
             [xc, yc] = removeoverlap(xc, yc, xwall, ywall, useps);
             for ic = 1:length(xc)
                 if useps
@@ -602,33 +601,33 @@ switch Opt.method
             isemp = cellfun(@isempty, xc);
             xc = xc(~isemp);
             yc = yc(~isemp);
-            
+
             [f,v,lev] = poly2faces(xc, yc, F, clev, useps);
-                
+
         else
             [xc, yc] = removeoverlap(xc, yc, xwall, ywall, useps);
             [f,v,lev] = poly2faces(xc, yc, F, clev, useps);
         end
         np = length(f);
-        
-        
+
+
         % Plot contour lines and patches
 
         cmap2 = [Opt.lo; cmap; Opt.hi; 1 1 1];
 
         hout.p = gobjects(np,1);
-        
+
         hold(ax, 'on');
         for ip = 1:np
             hout.p(ip) = patch('faces', f{ip}, 'vertices', v{ip}, 'facecolor', cmap2(lev(ip),:), 'edgecolor', 'none');
         end
-        [hout.c, hout.h] = contour(x,y,z,clev,'k'); 
-        
+        [hout.c, hout.h] = contour(x,y,z,clev,'linestyle','none');
+
         % A few axes properties changes similar to those made by contourf
-        
+
         axis(ax, 'tight');
         set(ax, 'layer', 'top', 'box', 'on');
-        
+
 end
 
 if showcb && hascbcoord
@@ -661,7 +660,7 @@ end
 % a = [min(b(:)) max(b(:))];
 
 %--------------------
-% Extend contours to 
+% Extend contours to
 % "walls" of the grid
 %--------------------
 
@@ -677,14 +676,14 @@ twall = [0; cumsum(seglen)]./arclen;
 for ii = find(~isclosed)'
 
     % Where along the wall does the open part of the contour hit?
-    
+
     [xy,d,t] = distance2curve([xwall(:) ywall(:)], [S(ii).X([end 1])', S(ii).Y([end 1])']);
-    
+
 %     plot(S(ii).X, S(ii).Y);
 %     plot(xy(:,1), xy(:,2), '*');
-    
+
     % Figure out which wall points need to be included, if any
-    
+
     if t(1) < t(2)
         isin = twall > t(1) & twall < t(2);
         tnew = [t(1); twall(isin); t(2)];
@@ -695,16 +694,16 @@ for ii = find(~isclosed)'
         tnew1 = [t(1); twall(isin1)];
         tnew2 = [twall(isin2); t(2)];
         pt = [interparc(tnew1, xwall, ywall, 'linear'); interparc(tnew2, xwall, ywall, 'linear')];
-        
+
     end
-    
+
 %     plot(pt(:,1), pt(:,2), '--');
-    
+
     S(ii).X = [S(ii).X(1:end-1) pt(:,1)'];
     S(ii).Y = [S(ii).Y(1:end-1) pt(:,2)'];
-    
+
 %     plot(S(ii).X, S(ii).Y, '--');
-    
+
 end
 
 %--------------------
@@ -715,7 +714,7 @@ end
 function [xnew, ynew] = removeoverlap(xc, yc, xwall, ywall, useps)
 
 % Eliminate any empty contours or duplicates
-        
+
 if useps
     pwall = polyshape(xwall,ywall); % will automatically make external
     [xwall, ywall] = boundary(pwall);
@@ -753,7 +752,7 @@ if useps
         end
     end
 else
-    
+
     for ip = 1:np
         [f{ip},v{ip}] = poly2fv(xnew{ip}, ynew{ip});
     end
@@ -764,7 +763,7 @@ v = v(~isemp);
 np = length(f);
 
 % There's probably a more elegant way to figure out which color
-% goes where, but this works for now 
+% goes where, but this works for now
 
 lev = zeros(np,1);
 for ii = 1:np
@@ -784,7 +783,7 @@ for ii = 1:np
 end
 
 %--------------------
-% Merge faces that 
+% Merge faces that
 % share an edge
 %--------------------
 

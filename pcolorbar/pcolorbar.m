@@ -12,7 +12,7 @@ function h = pcolorbar(clev, cmap, varargin)
 %   clev:       vector of length n defining the edges of the color blocks
 %
 %   cmap:       n-1 x 3 colormap array, colors corresponding to the
-%               intervals between each level in the clev array 
+%               intervals between each level in the clev array
 %
 % Optional input variables (passed as parameter/value pairs):
 %
@@ -61,6 +61,8 @@ p.addParameter('location', 'east', @(x) validateattributes(x, {'char','string'},
 p.addParameter('even', false, @(x) validateattributes(x, {'logical'}, {'scalar'}));
 p.addParameter('tkint', 1, @(x) validateattributes(x, {'numeric'}, {'integer'}));
 p.addParameter('cmapt', zeros(0,3), @(x) validateattributes(x, {'numeric'}, {'ncols',3,'>=',0,'<=',1}));
+p.addParameter('lo', false, @(x) validateattributes(x, {'numeric'}, {'ncols',3,'>=',0,'<=',1}));
+p.addParameter('hi', false, @(x) validateattributes(x, {'numeric'}, {'ncols',3,'>=',0,'<=',1}));
 
 p.parse(varargin{:});
 
@@ -109,6 +111,16 @@ islbl = ismember(1:length(tk), 1:Opt.tkint:length(tk));
 ypatch = [y1 y2 y2 y1 y1]';
 xpatch = repmat([0 0 1 1 0], size(ypatch,2), 1)';
 
+% Pointy ends?
+if ~isempty(Opt.hi)
+    xpatch(:, end) = [0 0.5 1 0.5 0]';
+    ypatch(:, end) = ypatch([1 2 1 1 1], end);
+end
+if ~isempty(Opt.lo)
+    xpatch(:, 1) = [0 0.5 1 0.5 0]';
+    ypatch(:, 1) = ypatch([2 2 2 1 2], 1);
+end
+
 cpatch = cat(3, cmap, Opt.cmapt, Opt.cmapt, cmap, cmap);
 cpatch = permute(cpatch, [3 1 2]);
 
@@ -123,7 +135,7 @@ switch lower(loc)
         set(h.ax, 'ytick', tk, 'yticklabel', tklbl, 'ylim', minmax(tk), ...
             'xlim', [0 1], 'xtick', []);
     otherwise
-        h.p = patch(ypatch, xpatch, cpatch);   
+        h.p = patch(ypatch, xpatch, cpatch);
         set(h.ax, 'xtick', tk, 'xticklabel', tklbl, 'xlim', minmax(tk), ...
             'ylim', [0 1], 'ytick', []);
 end
@@ -136,7 +148,9 @@ switch lower(loc)
 end
 
 set(h.ax, 'layer', 'top');
-
+set(h.ax, 'box', 'off');
+set(h.ax, 'clipping', 'off');
+set(h.ax, 'ylim', minmax(clev(2:end-1)));
 set(h.p, 'edgecolor', 'none');
 set(h.cb, 'visible', 'off');
 
