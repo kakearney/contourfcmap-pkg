@@ -59,11 +59,12 @@ function [v, A] = fillnan(v, coords, varargin)
 % Parse input
 %------------------------
 
-Opt.mask = isnan(v);
-Opt.geo  = false;
-Opt.perim = false;
-
-Opt = parsepv(Opt, varargin);
+p = inputParser;
+p.addParameter('mask', isnan(v));
+p.addParameter('geo', false);
+p.addParameter('perim', false);
+p.parse(varargin{:});
+Opt = p.Results;
 
 if ndims(v) > 3
     error('Only 2D and 3D arrays supported at this time');
